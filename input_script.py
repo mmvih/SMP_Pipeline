@@ -126,9 +126,9 @@ def csv_rowprocess(row, headers, **kwargs):
         newdirectory_formodel = os.path.join(kwargs["output_workdir"], model_directory)
         docker_container =  f"python " + kwargs["python_main"] + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
-                            f" --labelsTrainDir " + kwargs["imagesTrainDir"] + \
-                            f" --imagesValidDir " + kwargs["imagesTrainDir"] + \
-                            f" --labelsValidDir " + kwargs["imagesTrainDir"] + \
+                            f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
+                            f" --imagesValidDir " + kwargs["imagesValidDir"] + \
+                            f" --labelsValidDir " + kwargs["labelsValidDir"] + \
                             f" --maxEpochs {epochs}" + \
                             f" --batchSize {batchSize}" + \
                             f" --outputDir {newdirectory_formodel}" + \
