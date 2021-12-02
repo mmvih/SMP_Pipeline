@@ -18,49 +18,6 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-
-# workdir = "/home/ec2-user/"
-
-modelName = ['Unet', 'UnetPlusPlus', 'MAnet', 'Linknet', 'FPN', 'PSPNet', 'PAN', 'DeepLabV3', 'DeepLabV3Plus']
-lossName = ['MCCLoss', 'JaccardLoss', 'DiceLoss', 'TverskyLoss', 'FocalLoss', 'LovaszLoss', 'SoftBCEWithLogitsLoss', 'SoftCrossEntropyLoss']
-encoderVariant = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', "resnext50_32x4d", "resnext101_32x4d", 
-"resnext101_32x8d", "resnext101_32x16d", "resnext101_32x32d", "resnext101_32x48d", "timm-resnest14d", "timm-resnest26d", 
-"timm-resnest50d", "timm-resnest101e", "timm-resnest200e", "timm-resnest269e", "timm-resnest50d_4s2x40d", "timm-resnest50d_1s4x24d",
-"timm-res2net50_26w_4s", "timm-res2net101_26w_4s", "timm-res2net50_26w_6s", "timm-res2net50_26w_8s", "timm-res2net50_48w_2s", 
-"timm-res2net50_14w_8s", "timm-res2next50", "timm-regnetx_002", "timm-regnetx_004", "timm-regnetx_006", "timm-regnetx_008", 
-"timm-regnetx_016", "timm-regnetx_032", "timm-regnetx_040", "timm-regnetx_064", "timm-regnetx_080", "timm-regnetx_120", 
-"timm-regnetx_160", "timm-regnetx_320", "timm-regnety_002", "timm-regnety_004", "timm-regnety_006", "timm-regnety_008", 
-"timm-regnety_016", "timm-regnety_032", "timm-regnety_040", "timm-regnety_064", "timm-regnety_080",
-"timm-regnety_120", "timm-regnety_160", "timm-regnety_320", "timm-gernet_s", "timm-gernet_m", "timm-gernet_l", "senet154", 
-"se_resnet50", "se_resnet101", "se_resnet152", "se_resnext50_32x4d", "se_resnext101_32x4d", "timm-skresnet18",
-"timm-skresnet34", "timm-skresnext50_32x4d", "densenet121", "densenet169", "densenet201", "densenet161", "inceptionresnetv2", 
-"inceptionv4", "xception", "efficientnet-b0", "efficientnet-b1", "efficientnet-b2", "efficientnet-b3", "efficientnet-b4",
-"efficientnet-b5", "efficientnet-b6", "efficientnet-b7", "timm-efficientnet-b0", "timm-efficientnet-b1", "timm-efficientnet-b2", 
-"timm-efficientnet-b3", "timm-efficientnet-b4", "timm-efficientnet-b5", "timm-efficientnet-b6",
-"timm-efficientnet-b7", "timm-efficientnet-b8", "timm-efficientnet-l2",
-"timm-efficientnet-lite0", "timm-efficientnet-lite1", "timm-efficientnet-lite2",
-"timm-efficientnet-lite3", "timm-efficientnet-lite4", "mobilenet_v2",
-"timm-mobilenetv3_large_075", "timm-mobilenetv3_large_100", "timm-mobilenetv3_large_minimal_100",
-"timm-mobilenetv3_small_075", "timm-mobilenetv3_small_100", "timm-mobilenetv3_small_minimal_100",
-"dpn68", "dpn68b", "dpn92", "dpn98", "dpn107", "dpn131", "vgg11", "vgg11_bn", "vgg13", "vgg13_bn",
-"vgg16", "vgg16_bn", "vgg19", "vgg19_bn"]
-encoderWeights = ["random", "imagenet"]
-optimizerName = ['Adadelta', 'Adagrad', 'Adam', 'AdamW', 'Adamax', 'ASGD', 'RMSprop', 'Rprop', 'SGD'] #'LBFGS'
-segmentationMode = ["binary", "multilabel"]
-albumentations = ["HorizontalFlip_ShiftScaleRotate_PadIfNeeded_RandomCrop_" + \
-                  "GaussianNoise_Perspective_RandomBrightnessContrast_" + \
-                  "RandomGamma_Sharpen_Blur_MotionBlur", "NA"]
-
-arguments = {
-    "modelName":modelName,
-    "lossName":lossName, 
-    "encoderVariant":encoderVariant,
-    "encoderWeights":encoderWeights,
-    "optimizerName":optimizerName,
-    "segmentationMode":segmentationMode,
-    "trainAlbumentations":albumentations
-}
-
 epochs = 15
 batchSize = 4
 
@@ -186,32 +143,30 @@ def main():
         args = parser.parse_args()
         csvFile: str = args.csvFile
         
-        input_kwargs = {
-        "output_workdir" : args.outputModels,
-        "python_main"    : args.mainFile,
-        "imagesTrainDir" : args.imagesTrainDir,
-        "labelsTrainDir" : args.labelsTrainDir,
-        "imagesValidDir" : args.imagesValidDir,
-        "labelsValidDir" : args.labelsValidDir
-        }
+        input_kwargs = {"output_workdir" : args.outputModels,
+                        "python_main"    : args.mainFile,
+                        "imagesTrainDir" : args.imagesTrainDir,
+                        "labelsTrainDir" : args.labelsTrainDir,
+                        "imagesValidDir" : args.imagesValidDir,
+                        "labelsValidDir" : args.labelsValidDir}
 
-        values = list(arguments.values())
+
+        csv_file = open(csvFile)
+        csv_reader = csv.reader(csv_file)
 
         NUM_GPUS = len(available_gpus)
-        NUM_PROCESSES = int(np.product([len(val) for val in values]))
+        NUM_PROCESSES = int(len(list(csv_reader))) - 1
         PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
         print("Done GPU calcs...")
-
 
         for gpu_ids in tqdm(range(NUM_GPUS)):
             queue.put(gpu_ids)
 
-        with open(csvFile) as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=',')
-            headers = list(next(csv_reader))
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                for row in csv_reader:
-                    executor.submit(csv_rowprocess, row, headers, **input_kwargs)
+        csv_file.seek(0)
+        headers = next(csv_reader)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            for row in csv_reader:
+                executor.submit(csv_rowprocess, row, headers, **input_kwargs)
 
     except Exception as e:
         print(e)
