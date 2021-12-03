@@ -18,7 +18,7 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-epochs = 15
+epochs = 10
 batchSize = 4
 
 
@@ -81,6 +81,7 @@ def csv_rowprocess(row, headers, **kwargs):
             #     newdirectory_formodel = os.path.join(newdirectory_formodel, parameter)
                 model_directory = model_directory + "-" + parameter
         newdirectory_formodel = os.path.join(kwargs["output_workdir"], model_directory)
+        logfile = os.path.join(kwargs["output_workdir"], "logs.log")
         docker_container =  f"python " + kwargs["python_main"] + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
@@ -89,7 +90,9 @@ def csv_rowprocess(row, headers, **kwargs):
                             f" --maxEpochs {epochs}" + \
                             f" --batchSize {batchSize}" + \
                             f" --outputDir {newdirectory_formodel}" + \
-                            f" --device cuda:{gpu_id}"
+                            f" --device cuda:{gpu_id}" + \
+                            f" --create_checkpointDirectory True" + \
+                            f" --checkpointFrequency 5"
         num_arguments = len(headers)
         assert len(headers) == len(row)
         for argument_idx in range(num_arguments):
@@ -97,6 +100,7 @@ def csv_rowprocess(row, headers, **kwargs):
                 docker_container = docker_container + f" --{headers[argument_idx]} {row[argument_idx]}"
             else:
                 continue
+        # docker_container = docker_container + " >> " + logfile
         if not os.path.exists(newdirectory_formodel):
             os.makedirs(newdirectory_formodel)
             subprocess.call(docker_container, shell=True)
@@ -164,10 +168,14 @@ def main():
 
         csv_file.seek(0)
         headers = next(csv_reader)
+        i = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             for row in csv_reader:
                 executor.submit(csv_rowprocess, row, headers, **input_kwargs)
-
+                i = i + 1
+                if i >= 0:
+                    break
+                
     except Exception as e:
         print(e)
 
