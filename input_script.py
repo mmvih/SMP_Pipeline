@@ -18,7 +18,7 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-epochs = 10
+epochs = 2
 batchSize = 4
 
 
@@ -66,8 +66,6 @@ def create_plots(outputdirectory, traincsv, validcsv):
         plt.clf()
                     
 def csv_rowprocess(row, headers, **kwargs):
-    print("INPUT ROW: ", row)
-    print(kwargs)
     gpu_id = queue.get()
     ident = current_process().ident
     try:
@@ -81,7 +79,7 @@ def csv_rowprocess(row, headers, **kwargs):
             #     newdirectory_formodel = os.path.join(newdirectory_formodel, parameter)
                 model_directory = model_directory + "-" + parameter
         newdirectory_formodel = os.path.join(kwargs["output_workdir"], model_directory)
-        logfile = os.path.join(kwargs["output_workdir"], "logs.log")
+        logpath = os.path.join(newdirectory_formodel, "logs.log")
         docker_container =  f"python " + kwargs["python_main"] + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
@@ -100,10 +98,13 @@ def csv_rowprocess(row, headers, **kwargs):
                 docker_container = docker_container + f" --{headers[argument_idx]} {row[argument_idx]}"
             else:
                 continue
-        # docker_container = docker_container + " >> " + logfile
         if not os.path.exists(newdirectory_formodel):
             os.makedirs(newdirectory_formodel)
-            subprocess.call(docker_container, shell=True)
+            logfile = open(logpath, 'a')
+            subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile)
+            # for line in proc.stdout:
+            #     sys.stdout.write(line)
+            #     logfile.write(line)
         else:
             model_file = os.path.join(newdirectory_formodel, "model.pth")
             if os.path.exists(model_file):
@@ -161,7 +162,6 @@ def main():
         NUM_GPUS = len(available_gpus)
         NUM_PROCESSES = int(len(list(csv_reader))) - 1
         PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
-        print("Done GPU calcs...")
 
         for gpu_ids in tqdm(range(NUM_GPUS)):
             queue.put(gpu_ids)
