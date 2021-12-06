@@ -18,7 +18,7 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-epochs = 15
+epochs = 300
 batchSize = 4
 
 
@@ -71,7 +71,7 @@ def create_plots(outputdirectory, traincsv, validcsv):
         plt.ylabel(score_name)
         plt.savefig(os.path.join(outputdirectory, f"{score_name}.jpg"))
         plt.clf()
-                    
+
 def csv_rowprocess(row, headers, **kwargs):
     gpu_id = queue.get()
     ident = current_process().ident
@@ -93,6 +93,7 @@ def csv_rowprocess(row, headers, **kwargs):
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
                             f" --labelsValidDir " + kwargs["labelsValidDir"] + \
                             f" --maxEpochs {epochs}" + \
+                            f" --patience 20" + \
                             f" --batchSize {batchSize}" + \
                             f" --outputDir {newdirectory_formodel}" + \
                             f" --device cuda:{gpu_id}" + \
@@ -184,10 +185,11 @@ def main():
         csv_file.seek(0)
         headers = next(csv_reader)
         # i = 0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=NUM_GPUS-1) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             for row in csv_reader:
                 # print(f"Submitting {row}")
                 executor.submit(csv_rowprocess, row, headers, **input_kwargs)
+                break
                 # i = i + 1
                 
     except Exception as e:
