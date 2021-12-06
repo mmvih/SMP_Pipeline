@@ -17,8 +17,8 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-modelName = ['Unet', 'UnetPlusPlus', 'MAnet', 'Linknet', 'FPN', 'PSPNet', 'PAN', 'DeepLabV3', 'DeepLabV3Plus']
-lossName = ['MCCLoss', 'JaccardLoss', 'DiceLoss', 'TverskyLoss', 'FocalLoss', 'LovaszLoss', 'SoftBCEWithLogitsLoss', 'SoftCrossEntropyLoss']
+modelName = ['Unet', 'UnetPlusPlus', 'MAnet', 'Linknet', 'FPN', 'PSPNet', 'PAN', 'DeepLabV3', 'DeepLabV3Plus'] #9
+lossName = ['MCCLoss'] #, 'JaccardLoss', 'DiceLoss', 'TverskyLoss', 'FocalLoss', 'LovaszLoss', 'SoftBCEWithLogitsLoss', 'SoftCrossEntropyLoss'] #1
 encoderVariant = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', "resnext50_32x4d", "resnext101_32x4d", 
 "resnext101_32x8d", "resnext101_32x16d", "resnext101_32x32d", "resnext101_32x48d", "timm-resnest14d", "timm-resnest26d", 
 "timm-resnest50d", "timm-resnest101e", "timm-resnest200e", "timm-resnest269e", "timm-resnest50d_4s2x40d", "timm-resnest50d_1s4x24d",
@@ -39,14 +39,14 @@ encoderVariant = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 
 "timm-mobilenetv3_large_075", "timm-mobilenetv3_large_100", "timm-mobilenetv3_large_minimal_100",
 "timm-mobilenetv3_small_075", "timm-mobilenetv3_small_100", "timm-mobilenetv3_small_minimal_100",
 "dpn68", "dpn68b", "dpn92", "dpn98", "dpn107", "dpn131", "vgg11", "vgg11_bn", "vgg13", "vgg13_bn",
-"vgg16", "vgg16_bn", "vgg19", "vgg19_bn"]
-encoderWeights = ["random", "imagenet"]
-optimizerName = ['Adadelta', 'Adagrad', 'Adam', 'AdamW', 'Adamax', 'ASGD', 'RMSprop', 'Rprop', 'SGD'] #'LBFGS'
-segmentationMode = ["binary", "multilabel"]
-trainalbumentations = ["HorizontalFlip_ShiftScaleRotate_PadIfNeeded_RandomCrop_" + \
-                  "GaussianNoise_Perspective_RandomBrightnessContrast_" + \
-                  "RandomGamma_Sharpen_Blur_MotionBlur", "NA"]
-validablumentations = ["NA"]
+"vgg16", "vgg16_bn", "vgg19", "vgg19_bn"] #109
+encoderWeights = ["random", "imagenet"] #2
+optimizerName = ['Adam'] #['Adadelta', 'Adagrad', 'Adam', 'AdamW', 'Adamax', 'ASGD', 'RMSprop', 'Rprop', 'SGD']  #9 #'LBFGS'
+segmentationMode = ["binary"] # + [multilabel, multiclass] #1
+trainalbumentations = ["HorizontalFlip,ShiftScaleRotate,PadIfNeeded,RandomCrop," + \
+                  "GaussianNoise,Perspective,RandomBrightnessContrast," + \
+                  "RandomGamma,Sharpen,Blur,MotionBlur"] # "NA" #1
+validablumentations = ["NA"] #1
 
 arguments = {
     "modelName":modelName,
