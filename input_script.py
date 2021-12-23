@@ -18,8 +18,8 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-epochs = 300
-batchSize = 4
+epochs = 500
+batchSize = 8
 
 
 logging.basicConfig(
@@ -76,7 +76,9 @@ def csv_rowprocess(row, headers, **kwargs):
     gpu_id = queue.get()
     ident = current_process().ident
     try:
-        print('{}: starting process on GPU {}'.format(ident, gpu_id))
+        logger.info('{}: starting process on GPU {}'.format(ident, gpu_id))
+        if gpu_id == "0": # we have splinedist running on zero, DON'T MESS IT UP!
+            exit()
         model_directory = f"{row[0]}"
         for parameter in row[1:]:         
             if parameter == "NA":
@@ -87,18 +89,22 @@ def csv_rowprocess(row, headers, **kwargs):
                 model_directory = model_directory + "-" + parameter
         newdirectory_formodel = os.path.join(kwargs["output_workdir"], model_directory)
         logpath = os.path.join(newdirectory_formodel, "logs.log")
+
+        process_env = os.environ.copy()
+        process_env["CUDA_VISIBLE_DEVICES"] = gpu_id
+        # process_env["CUDA_LAUNCH_BLOCKING"] = "1"
         docker_container =  f"python " + kwargs["python_main"] + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
                             f" --labelsValidDir " + kwargs["labelsValidDir"] + \
                             f" --maxEpochs {epochs}" + \
-                            f" --patience 20" + \
+                            f" --patience 30" + \
                             f" --batchSize {batchSize}" + \
                             f" --outputDir {newdirectory_formodel}" + \
-                            f" --device cuda:{gpu_id}" + \
-                            f" --create_checkpointDirectory True" + \
-                            f" --checkpointFrequency 5"
+                            f" --device cuda:0" + \
+                            f" --checkpointFrequency 5" + \
+                            f" --minDelta .0001"
         num_arguments = len(headers)
         model_file = os.path.join(newdirectory_formodel, "model.pth")
         assert len(headers) == len(row)
@@ -111,9 +117,9 @@ def csv_rowprocess(row, headers, **kwargs):
                 continue
         if not os.path.exists(newdirectory_formodel):
             os.makedirs(newdirectory_formodel)
-            print(f"Starting up Process: {docker_container}")
             logfile = open(logpath, 'a')
-            subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile)
+            print(f"Starting up Process: {docker_container}")
+            subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
             if not os.path.exists(model_file):
                 ErrorFile = os.path.join(newdirectory_formodel, "ERROR")
                 with open(ErrorFile, 'w') as errorfile:
@@ -124,16 +130,18 @@ def csv_rowprocess(row, headers, **kwargs):
             checkpoint_file = os.path.join(newdirectory_formodel, "checkpoint.pth")
             if os.path.exists(checkpoint_file):
                 docker_container = docker_container + f" --pretrainedModel {newdirectory_formodel}"
-                subprocess.call(docker_container, shell=True)
+                logfile = open(logpath, 'a')
+                subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
             else:
                 print(f"Trying again: {docker_container}")
                 logfile = open(logpath, 'a')
-                subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile)
+                subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
+                
         trainlogs = os.path.join(newdirectory_formodel, "trainlogs.csv")
         validlogs = os.path.join(newdirectory_formodel, "validlogs.csv")
         if os.path.isfile(trainlogs) and os.path.isfile(validlogs):
             create_plots(newdirectory_formodel, trainlogs, validlogs)
-        print('{}: ending process on GPU {}'.format(ident, gpu_id))
+        logger.info('{}: ending process on GPU {}'.format(ident, gpu_id))
     except Exception as e:
         print(e)
     finally:
@@ -179,19 +187,18 @@ def main():
         NUM_PROCESSES = int(len(list(csv_reader))) - 1
         PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
 
-        for gpu_ids in tqdm(range(NUM_GPUS)):
-            queue.put(gpu_ids)
+        for gpu_ids in tqdm(range(6, 8)):
+            if gpu_ids == 5 or gpu_ids == 0:
+                continue
+            queue.put(str(gpu_ids))
 
         csv_file.seek(0)
         headers = next(csv_reader)
-        # i = 0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             for row in csv_reader:
-                # print(f"Submitting {row}")
                 executor.submit(csv_rowprocess, row, headers, **input_kwargs)
-                break
-                # i = i + 1
-                
+
     except Exception as e:
         print(e)
     

@@ -186,11 +186,11 @@ encoderVariant = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 
 "vgg16", "vgg16_bn", "vgg19", "vgg19_bn"] #109
 encoderWeights = ["random", "imagenet"] #2
 optimizerName = ['Adam'] #['Adadelta', 'Adagrad', 'Adam', 'AdamW', 'Adamax', 'ASGD', 'RMSprop', 'Rprop', 'SGD']  #9 #'LBFGS'
-segmentationMode = ["binary"] # + [multilabel, multiclass] #1
-trainalbumentations = ["HorizontalFlip,ShiftScaleRotate,PadIfNeeded,RandomCrop," + \
-                  "GaussianNoise,Perspective,RandomBrightnessContrast," + \
-                  "RandomGamma,Sharpen,Blur,MotionBlur"] # "NA" #1
-validablumentations = ["NA"] #1
+# segmentationMode = ["binary"] # + [multilabel, multiclass] #1
+# trainalbumentations = ["HorizontalFlip,ShiftScaleRotate,PadIfNeeded,RandomCrop," + \
+#                   "GaussianNoise,Perspective,RandomBrightnessContrast," + \
+#                   "RandomGamma,Sharpen,Blur,MotionBlur"] # "NA" #1
+# validablumentations = ["NA"] #1
 
 arguments = {
     "modelName":modelName,
@@ -199,9 +199,9 @@ arguments = {
     "encoderVariant":encoderVariant,
     "encoderWeights":encoderWeights,
     "optimizerName":optimizerName,
-    "segmentationMode":segmentationMode,
-    "trainAlbumentations":trainalbumentations,
-    "validAlbumentations":validablumentations
+    # "segmentationMode":segmentationMode,
+    # "trainAlbumentations":trainalbumentations,
+    # "validAlbumentations":validablumentations
 }
 
 

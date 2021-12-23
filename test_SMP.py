@@ -22,13 +22,74 @@ import bfio
 from bfio import BioWriter, BioReader
 
 from tqdm import tqdm
+from torch import Tensor
+import torchvision
+
+from typing import Union
+
+class LocalNorm(object):
+    def __init__(
+        	self, 
+         	window_size: int = 129,
+            max_response: Union[int, float] = 6,
+    ):
+        assert window_size % 2 == 1, 'window_size must be an odd integer'
+
+        self.window_size: int = window_size
+        self.max_response: float = float(max_response)
+        self.pad = torchvision.transforms.Pad(window_size // 2 + 1, padding_mode='reflect')
+        # Mode can be 'test', 'train' or 'eval'.
+        self.mode: str = 'eval'
+
+    def __call__(self, x: Tensor):
+        return torch.clip(
+            self.local_response(self.pad(x)),
+            min=-self.max_response,
+            max=self.max_response,
+        )
+
+    def image_filter(self, image: Tensor) -> Tensor:
+        """ Use a box filter on a stack of images
+        This method applies a box filter to an image. The input is assumed to be a
+        4D array, and should be pre-padded. The output will be smaller by
+        window_size - 1 pixels in both width and height since this filter does not pad
+        the input to account for filtering.
+        """
+        integral_image: Tensor = image.cumsum(dim=-1).cumsum(dim=-2)
+        return (
+                integral_image[..., :-self.window_size - 1, :-self.window_size - 1]
+                + integral_image[..., self.window_size:-1, self.window_size:-1]
+                - integral_image[..., self.window_size:-1, :-self.window_size - 1]
+                - integral_image[..., :-self.window_size - 1, self.window_size:-1]
+        )
+
+    def local_response(self, image: Tensor):
+        """ Regional normalization.
+        This method normalizes each pixel using the mean and standard deviation of
+        all pixels within the window_size. The window_size parameter should be
+        2 * radius + 1 of the desired region of pixels to normalize by. The image should
+        be padded by window_size // 2 on each side.
+        """
+        local_mean: Tensor = self.image_filter(image) / (self.window_size ** 2)
+        local_mean_square: Tensor = self.image_filter(image.pow(2)) / (self.window_size ** 2)
+
+        # Use absolute difference because sometimes error causes negative values
+        local_std = torch.clip(
+            (local_mean_square - local_mean.pow(2)).abs().sqrt(),
+            min=1e-3,
+        )
+
+        min_i, max_i = self.window_size // 2, -self.window_size // 2 - 1
+        response = image[..., min_i:max_i, min_i:max_i]
+
+        return (response - local_mean) / local_std
 
 def add_to_axis(image, groundtruth, threshold, axis=None):
 
 	
 	new_img = copy.deepcopy(image)
-	new_img[new_img < threshold]  = 0
-	new_img[new_img >= threshold] = 1
+	new_img[image > threshold]  = 1
+	new_img[image <= threshold] = 0
 
 	groundtruth = groundtruth.ravel()
 	unravel_new_img = new_img.ravel()
@@ -68,18 +129,23 @@ class DatasetforPytorch(Dataset):
 
         image          = np.array(Image.open(self.images_fps[i]))
         mask           = np.array(Image.open(self.masks_fps[i]))
+        image_shape    = image.shape
+        mask_shape     = mask.shape
         # mask[mask > 0] = 1 
 
         if self.augmentations:
             sample = self.augmentations(image=image, mask=mask)
             image, mask = sample['image'], sample['mask'] 
 
-        image          = np.reshape(image, (1, image.shape[0], image.shape[1])).astype("float32")
+        if self.preprocessing:
+            image = self.preprocessing(image).numpy()
+
+        image          = np.reshape(image, (1, image_shape[0], image_shape[1])).astype("float32")
         assert np.isnan(image).any() == False
         assert np.isinf(image).any() == False
 
         
-        mask           = np.reshape(mask, (1, mask.shape[0], mask.shape[1])).astype("float32")
+        mask           = np.reshape(mask, (1, mask_shape[0], mask_shape[1])).astype("float32")
         assert np.isnan(mask).any() == False
         assert np.isinf(mask).any() == False
 
@@ -113,7 +179,7 @@ def main():
  
 
  
-	bestmodelPath = os.path.join(modelDir, "best_model.pth")
+	bestmodelPath = os.path.join(modelDir, "model.pth")
 	configPath = os.path.join(modelDir, "config.json")
 	configObj = open(configPath, 'r')
 	configDict = json.load(configObj)
@@ -121,12 +187,14 @@ def main():
 	print(configDict)
 	
 	
-	preprocessing = None
+	preprocessing = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            LocalNorm(window_size=257)])
 	# if configDict["encoder_weights"] == "imagenet":
 	# 	preprocessing = smp.encoders.get_preprocessing_fn(configDict["encoder_variant"], pretrained='imagenet')
     
 	test_dataset_vis = DatasetforPytorch(images_dir=imagesTestDir, masks_dir=labelsTestDir, \
-     	preprocessing=preprocessing)
+     	preprocessing=None)
 	test_dataset = DatasetforPytorch(images_dir=imagesTestDir, masks_dir=labelsTestDir, \
      	preprocessing=preprocessing)
 
@@ -143,16 +211,18 @@ def main():
 	}
 	 
  
+	modelPath = os.path.join(modelDir, "model.pth")
 	outputTestDir = os.path.join(modelDir, "testedImages")
 	if not os.path.exists(outputTestDir):
 		os.mkdir(outputTestDir)
-	bestmodeldata = torch.load(bestmodelPath)
-	bestmodel = MODELS[bestmodeldata['model_name']](
-		encoder_name=bestmodeldata["encoder_variant"],
-		encoder_weights=bestmodeldata["encoder_weights"],
-		in_channels=1,
-		activation='sigmoid'
-	)
+	bestmodel = torch.load(bestmodelPath)
+	bestmodel.to(torch.device('cpu'))
+	# bestmodel = MODELS[bestmodeldata['model_name']](
+	# 	encoder_name=bestmodeldata["encoder_variant"],
+	# 	encoder_weights=bestmodeldata["encoder_weights"],
+	# 	in_channels=1,
+	# 	activation='sigmoid'
+	# )
 	sig = nn.Sigmoid()
  
  
@@ -174,14 +244,17 @@ def main():
 	
 			x_tensor = torch.from_numpy(image).to('cpu').unsqueeze(0)
 			pr_mask = bestmodel.predict(x_tensor)
-			# print(np.min(pr_mask), np.max(pr_mask))
+
 			# pr_mask = sig(pr_mask) # need to make predicitions range from 0 to 1
 			pr_mask = pr_mask.squeeze().cpu().numpy()
+			print(np.min(pr_mask), np.max(pr_mask))
 			pr_mask_shape = pr_mask.shape
-			# print(np.min(pr_mask), np.max(pr_mask))
 
+			
 			thres_min = np.min(pr_mask)
 			thres_max = np.max(pr_mask)
+			assert thres_max <= 1, f"Max Prediction value is greater than 1: {thres_max}"
+			assert thres_min >= 0, f"Min Prediction value is less than 0: {thres_min}"
 			thres_range = thres_max-thres_min
 			thresholds = np.arange(thres_min, thres_max, thres_range/10)
 
