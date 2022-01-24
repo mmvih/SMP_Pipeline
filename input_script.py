@@ -36,7 +36,11 @@ encodervariant_dictionary = {'resnet18': 'ResNet', 'resnet34': 'ResNet', 'resnet
  'resnext101_32x48d': 'ResNeXt', 'timm-resnest14d': 'ResNeSt', 
  'timm-resnest26d': 'ResNeSt', 'timm-resnest50d': 'ResNeSt', 
  'timm-resnest101e': 'ResNeSt', 'timm-resnest200e': 'ResNeSt', 'timm-resnest269e': 'ResNeSt', 
- 'timm-resnest50d_4s2x40d': 'ResNeSt', 'timm-resnest50d_1s4x24d': 'ResNeSt', 'timm-res2net50_26w_4s': 'Res2Ne(X)t', 'timm-res2net101_26w_4s': 'Res2Ne(X)t', 'timm-res2net50_26w_6s': 'Res2Ne(X)t', 'timm-res2net50_26w_8s': 'Res2Ne(X)t', 'timm-res2net50_48w_2s': 'Res2Ne(X)t', 'timm-res2net50_14w_8s': 'Res2Ne(X)t', 'timm-res2next50': 'Res2Ne(X)t', 'timm-regnetx_002': 'RegNet(x/y)', 'timm-regnetx_004': 'RegNet(x/y)', 'timm-regnetx_006': 'RegNet(x/y)', 'timm-regnetx_008': 'RegNet(x/y)', 'timm-regnetx_016': 'RegNet(x/y)', 'timm-regnetx_032': 'RegNet(x/y)', 'timm-regnetx_040': 'RegNet(x/y)', 'timm-regnetx_064': 'RegNet(x/y)', 'timm-regnetx_080': 'RegNet(x/y)', 'timm-regnetx_120': 'RegNet(x/y)', 'timm-regnetx_160': 'RegNet(x/y)', 'timm-regnetx_320': 'RegNet(x/y)', 'timm-regnety_002': 'RegNet(x/y)', 'timm-regnety_004': 'RegNet(x/y)', 'timm-regnety_006': 'RegNet(x/y)', 'timm-regnety_008': 'RegNet(x/y)', 'timm-regnety_016': 'RegNet(x/y)', 'timm-regnety_032': 'RegNet(x/y)', 'timm-regnety_040': 'RegNet(x/y)', 'timm-regnety_064': 'RegNet(x/y)', 'timm-regnety_080': 'RegNet(x/y)', 'timm-regnety_120': 'RegNet(x/y)', 'timm-regnety_160': 'RegNet(x/y)', 'timm-regnety_320': 'RegNet(x/y)', 'timm-gernet_s': 'GERNet', 'timm-gernet_m': 'GERNet', 'timm-gernet_l': 'GERNet', 'senet154': 'SE-Net', 'se_resnet50': 'SE-Net', 'se_resnet101': 'SE-Net', 'se_resnet152': 'SE-Net', 'se_resnext50_32x4d': 'SE-Net', 'se_resnext101_32x4d': 'SE-Net', 'timm-skresnet18': 'SK-ResNe(X)t', 'timm-skresnet34': 'SK-ResNe(X)t', 'timm-skresnext50_32x4d': 'SK-ResNe(X)t', 'densenet121': 'DenseNet', 'densenet169': 'DenseNet', 'densenet201': 'DenseNet', 'densenet161': 'DenseNet', 'inceptionresnetv2': 'Inception', 'inceptionv4': 'Inception', 'xception': 'Inception', 'efficientnet-b0': 'EfficientNet', 'efficientnet-b1': 'EfficientNet', 'efficientnet-b2': 'EfficientNet', 'efficientnet-b3': 'EfficientNet', 'efficientnet-b4': 'EfficientNet', 'efficientnet-b5': 'EfficientNet', 'efficientnet-b6': 'EfficientNet', 'efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b0': 'EfficientNet', 'timm-efficientnet-b1': 'EfficientNet', 'timm-efficientnet-b2': 'EfficientNet', 'timm-efficientnet-b3': 'EfficientNet', 'timm-efficientnet-b4': 'EfficientNet', 'timm-efficientnet-b5': 'EfficientNet', 'timm-efficientnet-b6': 'EfficientNet', 'timm-efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b8': 'EfficientNet', 'timm-efficientnet-l2': 'EfficientNet', 'timm-efficientnet-lite0': 'EfficientNet', 'timm-efficientnet-lite1': 'EfficientNet', 'timm-efficientnet-lite2': 'EfficientNet', 'timm-efficientnet-lite3': 'EfficientNet', 'timm-efficientnet-lite4': 'EfficientNet', 'mobilenet_v2': 'MobileNet', 'timm-mobilenetv3_large_075': 'MobileNet', 'timm-mobilenetv3_large_100': 'MobileNet', 'timm-mobilenetv3_large_minimal_100': 'MobileNet', 'timm-mobilenetv3_small_075': 'MobileNet', 'timm-mobilenetv3_small_100': 'MobileNet', 'timm-mobilenetv3_small_minimal_100': 'MobileNet', 'dpn68': 'DPN', 'dpn68b': 'DPN', 'dpn92': 'DPN', 'dpn98': 'DPN', 'dpn107': 'DPN', 'dpn131': 'DPN', 'vgg11': 'VGG', 'vgg11_bn': 'VGG', 'vgg13': 'VGG', 'vgg13_bn': 'VGG', 'vgg16': 'VGG', 'vgg16_bn': 'VGG', 'vgg19': 'VGG', 'vgg19_bn': 'VGG'}
+ 'timm-resnest50d_4s2x40d': 'ResNeSt', 'timm-resnest50d_1s4x24d': 'ResNeSt', 'timm-res2net50_26w_4s': 'Res2NeXt',
+ 'timm-res2net101_26w_4s': 'Res2NeXt', 'timm-res2net50_26w_6s': 'Res2NeXt', 'timm-res2net50_26w_8s': 'Res2NeXt', 
+ 'timm-res2net50_48w_2s': 'Res2NeXt', 'timm-res2net50_14w_8s': 'Res2NeXt', 'timm-res2next50': 'Res2NeXt', 'timm-regnetx_002': 'RegNetx/y', 
+ 'timm-regnetx_004': 'RegNetx/y', 'timm-regnetx_006': 'RegNetx/y', 'timm-regnetx_008': 'RegNetx/y', 'timm-regnetx_016': 'RegNetx/y', 'timm-regnetx_032': 'RegNetx/y', 'timm-regnetx_040': 'RegNetx/y', 'timm-regnetx_064': 'RegNetx/y', 'timm-regnetx_080': 'RegNetx/y', 'timm-regnetx_120': 'RegNetx/y', 'timm-regnetx_160': 'RegNetx/y', 
+                             'timm-regnetx_320': 'RegNetx/y', 'timm-regnety_002': 'RegNetx/y', 'timm-regnety_004': 'RegNetx/y', 'timm-regnety_006': 'RegNetx/y', 'timm-regnety_008': 'RegNetx/y', 'timm-regnety_016': 'RegNetx/y', 'timm-regnety_032': 'RegNetx/y', 'timm-regnety_040': 'RegNetx/y', 'timm-regnety_064': 'RegNetx/y', 'timm-regnety_080': 'RegNetx/y', 'timm-regnety_120': 'RegNetx/y', 'timm-regnety_160': 'RegNetx/y', 'timm-regnety_320': 'RegNetx/y', 'timm-gernet_s': 'GERNet', 'timm-gernet_m': 'GERNet', 'timm-gernet_l': 'GERNet', 'senet154': 'SE-Net', 'se_resnet50': 'SE-Net', 'se_resnet101': 'SE-Net', 'se_resnet152': 'SE-Net', 'se_resnext50_32x4d': 'SE-Net', 'se_resnext101_32x4d': 'SE-Net', 'timm-skresnet18': 'SK-ResNeXt', 'timm-skresnet34': 'SK-ResNeXt', 'timm-skresnext50_32x4d': 'SK-ResNeXt', 'densenet121': 'DenseNet', 'densenet169': 'DenseNet', 'densenet201': 'DenseNet', 'densenet161': 'DenseNet', 'inceptionresnetv2': 'Inception', 'inceptionv4': 'Inception', 'xception': 'Inception', 'efficientnet-b0': 'EfficientNet', 'efficientnet-b1': 'EfficientNet', 'efficientnet-b2': 'EfficientNet', 'efficientnet-b3': 'EfficientNet', 'efficientnet-b4': 'EfficientNet', 'efficientnet-b5': 'EfficientNet', 'efficientnet-b6': 'EfficientNet', 'efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b0': 'EfficientNet', 'timm-efficientnet-b1': 'EfficientNet', 'timm-efficientnet-b2': 'EfficientNet', 'timm-efficientnet-b3': 'EfficientNet', 'timm-efficientnet-b4': 'EfficientNet', 'timm-efficientnet-b5': 'EfficientNet', 'timm-efficientnet-b6': 'EfficientNet', 'timm-efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b8': 'EfficientNet', 'timm-efficientnet-l2': 'EfficientNet', 'timm-efficientnet-lite0': 'EfficientNet', 'timm-efficientnet-lite1': 'EfficientNet', 'timm-efficientnet-lite2': 'EfficientNet', 'timm-efficientnet-lite3': 'EfficientNet', 'timm-efficientnet-lite4': 'EfficientNet', 'mobilenet_v2': 'MobileNet', 'timm-mobilenetv3_large_075': 'MobileNet', 'timm-mobilenetv3_large_100': 'MobileNet', 'timm-mobilenetv3_large_minimal_100': 'MobileNet', 'timm-mobilenetv3_small_075': 'MobileNet', 'timm-mobilenetv3_small_100': 'MobileNet', 'timm-mobilenetv3_small_minimal_100': 'MobileNet', 'dpn68': 'DPN', 'dpn68b': 'DPN', 'dpn92': 'DPN', 'dpn98': 'DPN', 'dpn107': 'DPN', 'dpn131': 'DPN', 'vgg11': 'VGG', 'vgg11_bn': 'VGG', 'vgg13': 'VGG', 'vgg13_bn': 'VGG', 'vgg16': 'VGG', 'vgg16_bn': 'VGG', 'vgg19': 'VGG', 'vgg19_bn': 'VGG'}
 queue = Queue()
 
 def create_plots(outputdirectory, traincsv, validcsv):
@@ -77,23 +81,22 @@ def csv_rowprocess(row, headers, **kwargs):
     ident = current_process().ident
     try:
         logger.info('{}: starting process on GPU {}'.format(ident, gpu_id))
-        if gpu_id == "0": # we have splinedist running on zero, DON'T MESS IT UP!
-            exit()
         model_directory = f"{row[0]}"
         for parameter in row[1:]:         
             if parameter == "NA":
-                # newdirectory_formodel = os.path.join(newdirectory_formodel, "NA")
                 model_directory = model_directory + "-" + "NA"
             else:
-            #     newdirectory_formodel = os.path.join(newdirectory_formodel, parameter)
                 model_directory = model_directory + "-" + parameter
+        
+        if not os.path.exists(kwargs["output_workdir"]):
+            exit() # output directory does not exist
         newdirectory_formodel = os.path.join(kwargs["output_workdir"], model_directory)
         logpath = os.path.join(newdirectory_formodel, "logs.log")
 
         process_env = os.environ.copy()
         process_env["CUDA_VISIBLE_DEVICES"] = gpu_id
         # process_env["CUDA_LAUNCH_BLOCKING"] = "1"
-        docker_container =  f"python " + kwargs["python_main"] + \
+        docker_container =  f"time python " + kwargs["python_main"] + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
@@ -187,21 +190,18 @@ def main():
         NUM_PROCESSES = int(len(list(csv_reader))) - 1
         PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
 
-        for gpu_ids in tqdm(range(6, 8)):
-            if gpu_ids == 5 or gpu_ids == 0:
-                continue
+        for gpu_ids in tqdm(range(8)):
             queue.put(str(gpu_ids))
 
         csv_file.seek(0)
         headers = next(csv_reader)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             for row in csv_reader:
                 executor.submit(csv_rowprocess, row, headers, **input_kwargs)
 
     except Exception as e:
         print(e)
     
-    #changes here are made
 
 main()
