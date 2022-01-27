@@ -18,7 +18,7 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-epochs = 500
+epochs = 5
 batchSize = 8
 
 
@@ -66,15 +66,25 @@ def create_plots(outputdirectory, traincsv, validcsv):
                             [[float(Train_value)], [float(Valid_value)]]
 
     score_keys = score_dictionary.keys()
+    fig, ax = plt.subplots(2, 3, figsize=(15,12))
+    fig.tight_layout(pad=3)
+    i = 0
+    j = 0
+    fig.suptitle(os.path.basename(outputdirectory))
     for score_name in score_dictionary.keys():
-        plt.plot(score_dictionary[score_name][0])
-        plt.plot(score_dictionary[score_name][1])
-        plt.legend(["Train", "Validation"])
-        plt.title(score_name)
-        plt.xlabel("EPOCHS")
-        plt.ylabel(score_name)
-        plt.savefig(os.path.join(outputdirectory, f"{score_name}.jpg"))
-        plt.clf()
+        ax[i,j].set_ylim([0,1])
+        ax[i,j].set_xlabel("EPOCHS")
+        ax[i,j].set_ylabel(score_name)
+        ax[i,j].plot(score_dictionary[score_name][0], label="Train")
+        ax[i,j].plot(score_dictionary[score_name][1], label="Validation")
+        i = i + 1
+        if i == 2:
+            i = 0
+            j = j + 1
+    handles, labels = ax[0,0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper right')
+    plt.savefig(os.path.join(outputdirectory, f"Logs.jpg"))
+    plt.clf()
 
 def csv_rowprocess(row, headers, **kwargs):
     gpu_id = queue.get()
@@ -102,12 +112,12 @@ def csv_rowprocess(row, headers, **kwargs):
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
                             f" --labelsValidDir " + kwargs["labelsValidDir"] + \
                             f" --maxEpochs {epochs}" + \
-                            f" --patience 30" + \
+                            f" --patience 5" + \
                             f" --batchSize {batchSize}" + \
                             f" --outputDir {newdirectory_formodel}" + \
                             f" --device cuda:0" + \
-                            f" --checkpointFrequency 5" + \
                             f" --minDelta .0001"
+                            # f" --checkpointFrequency 5" + \
         num_arguments = len(headers)
         model_file = os.path.join(newdirectory_formodel, "model.pth")
         assert len(headers) == len(row)
@@ -196,9 +206,13 @@ def main():
         csv_file.seek(0)
         headers = next(csv_reader)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            i = 0
             for row in csv_reader:
                 executor.submit(csv_rowprocess, row, headers, **input_kwargs)
+                i = i + 1
+                if i > 0:
+                    break
 
     except Exception as e:
         print(e)
