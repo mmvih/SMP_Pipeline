@@ -35,8 +35,8 @@ smp_inputs_list = os.listdir(smp_inputs_path)
 def getLoader(images_Dir, 
               labels_Dir):
         
-    images_fp = FilePattern(images_Dir, ".*")
-    labels_fp = FilePattern(labels_Dir, ".*")
+    images_fp = FilePattern(images_Dir, "nuclear_test_61{x}.tif")
+    labels_fp = FilePattern(labels_Dir, "nuclear_test_61{x}.tif")
     
     image_array, label_array = get_labels_mapping(images_fp(), labels_fp())
     
@@ -107,6 +107,11 @@ avg_model_metric_comparison = {metric.__name__ : {} for metric in metrics}
 std_model_metric_comparison = {metric.__name__ : {} for metric in metrics}
 
 fig, ax = plt.subplots(4, 3, figsize = (12, 16))
+
+test_loader, test_loader_vis = getLoader(images_Dir=testing_images,
+                                            labels_Dir=testing_labels)
+test_loader_len = torch.tensor(len(test_loader))
+
 for smp_input_file in smp_inputs_list:
     
     smp_input_path = os.path.join(smp_inputs_path, smp_input_file)
@@ -133,9 +138,6 @@ for smp_input_file in smp_inputs_list:
         configObj     = open(config_path, 'r')
         configDict    = json.load(configObj)
 
-        test_loader, test_loader_vis = getLoader(images_Dir=testing_images,
-                                                 labels_Dir=testing_labels)
-        test_loader_len = torch.tensor(len(test_loader))
 
         metric_outputs = {}
         best_metric_outputs  = {}
