@@ -31,8 +31,8 @@ from src.utils import LOSSES
 
 """INPUT PARAMETERS"""
 
-smp_inputs_path =  "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP/"
-smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP_pixeleval/"
+smp_inputs_path =  "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/dummy_output_SMP/"
+smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/dummy_output_SMP_pixeleval/"
 
 testing_images = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/image/"
 testing_labels = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/groundtruth_centerbinary_2pixelsmaller/"
@@ -44,7 +44,8 @@ available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())
 def getLoader(images_Dir, 
               labels_Dir):
     
-    filepattern = ".*"
+    # filepattern = ".*"
+    filepattern = "nuclear_test_60{x}.tif"
     images_fp = FilePattern(testing_images, filepattern)
     labels_fp = FilePattern(testing_labels, filepattern)
 
@@ -135,20 +136,36 @@ def evaluation(smp_model : str,
             img_count = img_count + 1
         
         queue.put(cuda_num)
-        python_command = "python /home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/polus-plugins/features/polus-pixelwise-evaluation-plugin/src/main.py" + \
+        
+        pixel_output = os.path.join(output_path, "pixeleval")
+        if not os.path.exists(pixel_output):
+            os.mkdir(pixel_output)
+        pythonpixel_command = "python /home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/polus-plugins/features/polus-pixelwise-evaluation-plugin/src/main.py" + \
                         f" --GTDir {gt_collection}" + \
                         f" --PredDir {pr_collection}" + \
                         f" --inputClasses 1" + \
                         f" --individualStats False" + \
                         f" --totalStats True" + \
-                        f" --outDir {output_path}"
-                            
-        print(python_command)
-            
-        logfile = open(os.path.join(output_path, "logs.log"), 'a')
-        subprocess.call(python_command, shell=True, stdout=logfile, stderr=logfile)
-                                
-            
+                        f" --outDir {pixel_output}"
+                          
+        pixellogfile = open(os.path.join(pixel_output, "logs.log"), 'a')
+        subprocess.call(pythonpixel_command, shell=True, stdout=pixellogfile, stderr=pixellogfile)
+                   
+        cell_output = os.path.join(output_path, "celleval")
+        if not os.path.exists(cell_output):
+            os.mkdir(cell_output)
+        pythoncell_command = "python /home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/polus-plugins/features/polus-cellular-evaluation-plugin/src/main.py" + \
+                        f" --GTDir {gt_collection}" + \
+                        f" --PredDir {pr_collection}" + \
+                        f" --inputClasses 1" + \
+                        f" --totalStats True" + \
+                        f" --totalSummary True" + \
+                        f" --outDir {cell_output}" 
+
+        celllogfile = open(os.path.join(cell_output, "logs.log"), 'a')
+        subprocess.call(pythoncell_command, shell=True, stdout=celllogfile, stderr=celllogfile)
+        
+        
 NUM_GPUS = len(available_gpus)
 NUM_PROCESSES = len(smp_inputs_list)
 PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
@@ -157,7 +174,7 @@ PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
 for gpu_ids in (range(8)):
     queue.put(str(gpu_ids))
             
-with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
             # i = 0
     for smp_input in smp_inputs_list:
         executor.submit(evaluation, smp_input, queue.get())
