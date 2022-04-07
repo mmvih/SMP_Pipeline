@@ -5,6 +5,8 @@ import logging, argparse
 import itertools
 from itertools import repeat
 
+import shutil
+
 from tqdm import tqdm
 import numpy as np
 
@@ -18,8 +20,8 @@ import concurrent.futures
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
-epochs = 5
-batchSize = 8
+epochs = 500
+batchSize = 32
 
 
 logging.basicConfig(
@@ -29,18 +31,56 @@ logging.basicConfig(
 logger = logging.getLogger("pipeline")
 logger.setLevel("INFO")
 
-encodervariant_dictionary = {'resnet18': 'ResNet', 'resnet34': 'ResNet', 'resnet50': 'ResNet', 
- 'resnet101': 'ResNet', 'resnet152': 'ResNet', 'resnext50_32x4d': 'ResNeXt', 
- 'resnext101_32x4d': 'ResNeXt', 'resnext101_32x8d': 'ResNeXt', 
- 'resnext101_32x16d': 'ResNeXt', 'resnext101_32x32d': 'ResNeXt', 
- 'resnext101_32x48d': 'ResNeXt', 'timm-resnest14d': 'ResNeSt', 
- 'timm-resnest26d': 'ResNeSt', 'timm-resnest50d': 'ResNeSt', 
+encodervariant_dictionary = {
+ 'resnet18': 'ResNet', 'resnet34': 'ResNet', 'resnet50': 'ResNet', 
+ 'resnet101': 'ResNet', 'resnet152': 'ResNet', 
+ 
+ 'resnext50_32x4d': 'ResNeXt', 'resnext101_32x4d': 'ResNeXt', 'resnext101_32x8d': 'ResNeXt', 
+ 'resnext101_32x16d': 'ResNeXt', 'resnext101_32x32d': 'ResNeXt', 'resnext101_32x48d': 'ResNeXt',
+ 'timm-res2net50_26w_4s': 'Res2NeXt', 'timm-res2net101_26w_4s': 'Res2NeXt', 'timm-res2net50_26w_6s': 'Res2NeXt', 
+ 'timm-res2net50_26w_8s': 'Res2NeXt', 'timm-res2net50_48w_2s': 'Res2NeXt', 'timm-res2net50_14w_8s': 'Res2NeXt', 'timm-res2next50': 'Res2NeXt',
+ 
+ 'timm-resnest14d': 'ResNeSt', 'timm-resnest26d': 'ResNeSt', 'timm-resnest50d': 'ResNeSt', 
  'timm-resnest101e': 'ResNeSt', 'timm-resnest200e': 'ResNeSt', 'timm-resnest269e': 'ResNeSt', 
- 'timm-resnest50d_4s2x40d': 'ResNeSt', 'timm-resnest50d_1s4x24d': 'ResNeSt', 'timm-res2net50_26w_4s': 'Res2NeXt',
- 'timm-res2net101_26w_4s': 'Res2NeXt', 'timm-res2net50_26w_6s': 'Res2NeXt', 'timm-res2net50_26w_8s': 'Res2NeXt', 
- 'timm-res2net50_48w_2s': 'Res2NeXt', 'timm-res2net50_14w_8s': 'Res2NeXt', 'timm-res2next50': 'Res2NeXt', 'timm-regnetx_002': 'RegNetx/y', 
- 'timm-regnetx_004': 'RegNetx/y', 'timm-regnetx_006': 'RegNetx/y', 'timm-regnetx_008': 'RegNetx/y', 'timm-regnetx_016': 'RegNetx/y', 'timm-regnetx_032': 'RegNetx/y', 'timm-regnetx_040': 'RegNetx/y', 'timm-regnetx_064': 'RegNetx/y', 'timm-regnetx_080': 'RegNetx/y', 'timm-regnetx_120': 'RegNetx/y', 'timm-regnetx_160': 'RegNetx/y', 
-                             'timm-regnetx_320': 'RegNetx/y', 'timm-regnety_002': 'RegNetx/y', 'timm-regnety_004': 'RegNetx/y', 'timm-regnety_006': 'RegNetx/y', 'timm-regnety_008': 'RegNetx/y', 'timm-regnety_016': 'RegNetx/y', 'timm-regnety_032': 'RegNetx/y', 'timm-regnety_040': 'RegNetx/y', 'timm-regnety_064': 'RegNetx/y', 'timm-regnety_080': 'RegNetx/y', 'timm-regnety_120': 'RegNetx/y', 'timm-regnety_160': 'RegNetx/y', 'timm-regnety_320': 'RegNetx/y', 'timm-gernet_s': 'GERNet', 'timm-gernet_m': 'GERNet', 'timm-gernet_l': 'GERNet', 'senet154': 'SE-Net', 'se_resnet50': 'SE-Net', 'se_resnet101': 'SE-Net', 'se_resnet152': 'SE-Net', 'se_resnext50_32x4d': 'SE-Net', 'se_resnext101_32x4d': 'SE-Net', 'timm-skresnet18': 'SK-ResNeXt', 'timm-skresnet34': 'SK-ResNeXt', 'timm-skresnext50_32x4d': 'SK-ResNeXt', 'densenet121': 'DenseNet', 'densenet169': 'DenseNet', 'densenet201': 'DenseNet', 'densenet161': 'DenseNet', 'inceptionresnetv2': 'Inception', 'inceptionv4': 'Inception', 'xception': 'Inception', 'efficientnet-b0': 'EfficientNet', 'efficientnet-b1': 'EfficientNet', 'efficientnet-b2': 'EfficientNet', 'efficientnet-b3': 'EfficientNet', 'efficientnet-b4': 'EfficientNet', 'efficientnet-b5': 'EfficientNet', 'efficientnet-b6': 'EfficientNet', 'efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b0': 'EfficientNet', 'timm-efficientnet-b1': 'EfficientNet', 'timm-efficientnet-b2': 'EfficientNet', 'timm-efficientnet-b3': 'EfficientNet', 'timm-efficientnet-b4': 'EfficientNet', 'timm-efficientnet-b5': 'EfficientNet', 'timm-efficientnet-b6': 'EfficientNet', 'timm-efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b8': 'EfficientNet', 'timm-efficientnet-l2': 'EfficientNet', 'timm-efficientnet-lite0': 'EfficientNet', 'timm-efficientnet-lite1': 'EfficientNet', 'timm-efficientnet-lite2': 'EfficientNet', 'timm-efficientnet-lite3': 'EfficientNet', 'timm-efficientnet-lite4': 'EfficientNet', 'mobilenet_v2': 'MobileNet', 'timm-mobilenetv3_large_075': 'MobileNet', 'timm-mobilenetv3_large_100': 'MobileNet', 'timm-mobilenetv3_large_minimal_100': 'MobileNet', 'timm-mobilenetv3_small_075': 'MobileNet', 'timm-mobilenetv3_small_100': 'MobileNet', 'timm-mobilenetv3_small_minimal_100': 'MobileNet', 'dpn68': 'DPN', 'dpn68b': 'DPN', 'dpn92': 'DPN', 'dpn98': 'DPN', 'dpn107': 'DPN', 'dpn131': 'DPN', 'vgg11': 'VGG', 'vgg11_bn': 'VGG', 'vgg13': 'VGG', 'vgg13_bn': 'VGG', 'vgg16': 'VGG', 'vgg16_bn': 'VGG', 'vgg19': 'VGG', 'vgg19_bn': 'VGG'}
+ 'timm-resnest50d_4s2x40d': 'ResNeSt', 'timm-resnest50d_1s4x24d': 'ResNeSt', 
+ 
+ 'timm-regnetx_002': 'RegNetx/y', 'timm-regnetx_004': 'RegNetx/y', 'timm-regnetx_006': 'RegNetx/y', 'timm-regnetx_008': 'RegNetx/y', 
+ 'timm-regnetx_016': 'RegNetx/y', 'timm-regnetx_032': 'RegNetx/y', 'timm-regnetx_040': 'RegNetx/y', 'timm-regnetx_064': 'RegNetx/y', 
+ 'timm-regnetx_080': 'RegNetx/y', 'timm-regnetx_120': 'RegNetx/y', 'timm-regnetx_160': 'RegNetx/y', 'timm-regnetx_320': 'RegNetx/y', 
+ 'timm-regnety_002': 'RegNetx/y', 'timm-regnety_004': 'RegNetx/y', 'timm-regnety_006': 'RegNetx/y', 'timm-regnety_008': 'RegNetx/y', 
+ 'timm-regnety_016': 'RegNetx/y', 'timm-regnety_032': 'RegNetx/y', 'timm-regnety_040': 'RegNetx/y', 'timm-regnety_064': 'RegNetx/y', 
+ 'timm-regnety_080': 'RegNetx/y', 'timm-regnety_120': 'RegNetx/y', 'timm-regnety_160': 'RegNetx/y', 'timm-regnety_320': 'RegNetx/y', 
+ 
+ 'timm-gernet_s': 'GERNet', 'timm-gernet_m': 'GERNet', 'timm-gernet_l': 'GERNet', 
+ 
+ 'senet154': 'SE-Net', 'se_resnet50': 'SE-Net', 'se_resnet101': 'SE-Net', 'se_resnet152': 'SE-Net', 'se_resnext50_32x4d': 'SE-Net', 
+ 'se_resnext101_32x4d': 'SE-Net', 
+ 
+ 'timm-skresnet18': 'SK-ResNeXt', 'timm-skresnet34': 'SK-ResNeXt', 'timm-skresnext50_32x4d': 'SK-ResNeXt', 
+ 
+ 'densenet121': 'DenseNet', 'densenet169': 'DenseNet', 'densenet201': 'DenseNet', 'densenet161': 'DenseNet', 
+ 
+ 'inceptionresnetv2': 'Inception', 'inceptionv4': 'Inception', 'xception': 'Inception', 
+ 
+ 'efficientnet-b0': 'EfficientNet', 'efficientnet-b1': 'EfficientNet', 'efficientnet-b2': 'EfficientNet', 'efficientnet-b3': 'EfficientNet', 
+ 'efficientnet-b4': 'EfficientNet', 'efficientnet-b5': 'EfficientNet', 'efficientnet-b6': 'EfficientNet', 'efficientnet-b7': 'EfficientNet', 
+ 'timm-efficientnet-b0': 'EfficientNet', 'timm-efficientnet-b1': 'EfficientNet', 'timm-efficientnet-b2': 'EfficientNet', 
+ 'timm-efficientnet-b3': 'EfficientNet', 'timm-efficientnet-b4': 'EfficientNet', 'timm-efficientnet-b5': 'EfficientNet', 
+ 'timm-efficientnet-b6': 'EfficientNet', 'timm-efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b8': 'EfficientNet', 
+ 'timm-efficientnet-l2': 'EfficientNet', 
+ 'timm-tf_efficientnet_lite0': 'EfficientNet', 'timm-tf_efficientnet_lite1': 'EfficientNet', 
+ 'timm-tf_efficientnet_lite2': 'EfficientNet', 'timm-tf_efficientnet_lite3': 'EfficientNet', 
+ 'timm-tf_efficientnet_lite4': 'EfficientNet', 
+ 
+ 'mobilenet_v2': 'MobileNet', 
+ 'timm-mobilenetv3_large_075': 'MobileNet', 'timm-mobilenetv3_large_100': 'MobileNet', 'timm-mobilenetv3_large_minimal_100': 'MobileNet', 
+ 'timm-mobilenetv3_small_075': 'MobileNet', 'timm-mobilenetv3_small_100': 'MobileNet', 'timm-mobilenetv3_small_minimal_100': 'MobileNet', 
+ 
+ 'dpn68': 'DPN', 'dpn68b': 'DPN', 'dpn92': 'DPN', 'dpn98': 'DPN', 'dpn107': 'DPN', 'dpn131': 'DPN', 
+ 
+ 'vgg11': 'VGG', 'vgg11_bn': 'VGG', 'vgg13': 'VGG', 'vgg13_bn': 'VGG', 
+ 'vgg16': 'VGG', 'vgg16_bn': 'VGG', 'vgg19': 'VGG', 'vgg19_bn': 'VGG'}
+
 queue = Queue()
 
 def create_plots(outputdirectory, traincsv, validcsv):
@@ -105,19 +145,18 @@ def csv_rowprocess(row, headers, **kwargs):
 
         process_env = os.environ.copy()
         process_env["CUDA_VISIBLE_DEVICES"] = gpu_id
-        # process_env["CUDA_LAUNCH_BLOCKING"] = "1"
         docker_container =  f"time python " + kwargs["python_main"] + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
                             f" --labelsValidDir " + kwargs["labelsValidDir"] + \
                             f" --maxEpochs {epochs}" + \
-                            f" --patience 5" + \
+                            f" --patience 30" + \
                             f" --batchSize {batchSize}" + \
                             f" --outputDir {newdirectory_formodel}" + \
                             f" --device cuda:0" + \
+                            f" --checkpointFrequency 5" + \
                             f" --minDelta .0001"
-                            # f" --checkpointFrequency 5" + \
         num_arguments = len(headers)
         model_file = os.path.join(newdirectory_formodel, "model.pth")
         assert len(headers) == len(row)
@@ -125,18 +164,30 @@ def csv_rowprocess(row, headers, **kwargs):
             if row[argument_idx] != "NA":
                 docker_container = docker_container + f" --{headers[argument_idx]} {row[argument_idx]}"
                 if headers[argument_idx] == "encoderVariant":
-                    docker_container = docker_container + f" --encoderBase {encodervariant_dictionary[row[argument_idx]]}"
+                    docker_container = docker_container + f" --encoderBase TIMM"
+                    # docker_container = docker_container + f" --encoderBase {encodervariant_dictionary[row[argument_idx]]}"
             else:
                 continue
         if not os.path.exists(newdirectory_formodel):
             os.makedirs(newdirectory_formodel)
             logfile = open(logpath, 'a')
-            print(f"Starting up Process: {docker_container}")
+            print(f"Starting up Process: {docker_container}", flush=True)
             subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
             if not os.path.exists(model_file):
                 ErrorFile = os.path.join(newdirectory_formodel, "ERROR")
                 with open(ErrorFile, 'w') as errorfile:
                     pass
+            else:
+                checkpoint_dirpath = os.path.join(newdirectory_formodel, "checkpoints")
+                checkpoint_finalpath = os.path.join(checkpoint_dirpath, "checkpoint_final.pth")
+                model_finalpath      = os.path.join(checkpoint_dirpath, "model_final.pth")
+                if os.path.exists(checkpoint_finalpath) and \
+                    os.path.exists(model_finalpath):
+                    shutil.move(checkpoint_finalpath, newdirectory_formodel)
+                    shutil.move(model_finalpath, newdirectory_formodel)
+                if (os.path.exists(os.path.join(newdirectory_formodel,"checkpoint_final.pth")) and \
+                    os.path.exists(os.path.join(newdirectory_formodel,"model_final.pth"))):
+                    shutil.rmtree(checkpoint_dirpath)
         else:            
             if os.path.exists(model_file):
                 return 0
@@ -146,14 +197,14 @@ def csv_rowprocess(row, headers, **kwargs):
                 logfile = open(logpath, 'a')
                 subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
             else:
-                print(f"Trying again: {docker_container}")
+                print(f"Trying again: {docker_container}", flush=True)
                 logfile = open(logpath, 'a')
                 subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
                 
-        trainlogs = os.path.join(newdirectory_formodel, "trainlogs.csv")
-        validlogs = os.path.join(newdirectory_formodel, "validlogs.csv")
-        if os.path.isfile(trainlogs) and os.path.isfile(validlogs):
-            create_plots(newdirectory_formodel, trainlogs, validlogs)
+        # trainlogs = os.path.join(newdirectory_formodel, "trainlogs.csv")
+        # validlogs = os.path.join(newdirectory_formodel, "validlogs.csv")
+        # if os.path.isfile(trainlogs) and os.path.isfile(validlogs):
+        #     create_plots(newdirectory_formodel, trainlogs, validlogs)
         logger.info('{}: ending process on GPU {}'.format(ident, gpu_id))
     except Exception as e:
         print(e)
@@ -206,13 +257,13 @@ def main():
         csv_file.seek(0)
         headers = next(csv_reader)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            i = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            # i = 0
             for row in csv_reader:
                 executor.submit(csv_rowprocess, row, headers, **input_kwargs)
-                i = i + 1
-                if i > 0:
-                    break
+                # i = i + 1
+                # if i > 100:
+                #     break
 
     except Exception as e:
         print(e)
