@@ -31,8 +31,8 @@ from src.utils import LOSSES
 
 """INPUT PARAMETERS"""
 
-smp_inputs_path =  "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/dummy_output_SMP/"
-smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/dummy_output_SMP_pixeleval/"
+smp_inputs_path =  "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP/"
+smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP_eval/"
 
 testing_images = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/image/"
 testing_labels = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/groundtruth_centerbinary_2pixelsmaller/"
@@ -44,12 +44,12 @@ available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())
 def getLoader(images_Dir, 
               labels_Dir):
     
-    # filepattern = ".*"
-    filepattern = "nuclear_test_60{x}.tif"
+    filepattern = ".*"
+    # filepattern = "nuclear_test_60{x}.tif"
     images_fp = FilePattern(testing_images, filepattern)
     labels_fp = FilePattern(testing_labels, filepattern)
 
-    image_array, label_array = get_labels_mapping(images_fp(), labels_fp())
+    image_array, label_array, names = get_labels_mapping(images_fp(), labels_fp(), provide_names=True)
 
     testing_dataset = Dataset(images=image_array,
                               labels=label_array)
@@ -61,7 +61,7 @@ def getLoader(images_Dir,
                                                     torchvision.transforms.ToTensor()]))
     testing_loader_vis = MultiEpochsDataLoader(testing_dataset_vis, num_workers=4, batch_size=10, shuffle=True, pin_memory=True, drop_last=True)
         
-    return testing_dataset, testing_dataset_vis, images_fp, labels_fp
+    return testing_dataset, testing_dataset_vis, images_fp, labels_fp, names
 
 
 
@@ -72,7 +72,7 @@ def evaluation(smp_model : str,
                cuda_num : str):
     
     print("Getting Loaders")
-    test_loader, test_loader_vis, images_fp, labels_fp = getLoader(images_Dir=testing_images,
+    test_loader, test_loader_vis, images_fp, labels_fp, names = getLoader(images_Dir=testing_images,
                                                 labels_Dir=testing_labels)
     print("Done with Loaders")
     test_loader_len = torch.tensor(len(test_loader))
@@ -92,6 +92,10 @@ def evaluation(smp_model : str,
     
     with tempfile.TemporaryDirectory() as temp_dir:
         
+        # temp_dir = os.path.join("/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/psuedotemp", smp_model)
+        # if not os.path.exists(temp_dir):
+        #     os.makedirs(temp_dir)
+        
         pr_collection = os.path.join(temp_dir, "predictions") # this is where images get saved to
         gt_collection = os.path.join(temp_dir, "groundtruths")
         output_path = os.path.join(smp_outputs_path, smp_model)
@@ -109,11 +113,14 @@ def evaluation(smp_model : str,
             pr_tensor = model.predict(im_tensor)
             
             gt = gt.squeeze()[..., None, None, None]
+
             pr = pr_tensor.cpu().detach().numpy().squeeze()[..., None, None, None]
+            pr[pr >= .50] = 1
+            pr[pr < .50] = 0            
             
             assert gt.shape == pr.shape
             
-            filename = f"Image_{img_count}.tif"
+            filename = names[img_count]
             pr_filename = os.path.join(pr_collection, filename)
             gt_filename = os.path.join(gt_collection, filename)
             
@@ -132,7 +139,7 @@ def evaluation(smp_model : str,
                                         T=1,
                                         dtype=gt.dtype) as bw_gt:
                 bw_gt[:] = gt
-                
+            
             img_count = img_count + 1
         
         queue.put(cuda_num)
@@ -151,19 +158,20 @@ def evaluation(smp_model : str,
         pixellogfile = open(os.path.join(pixel_output, "logs.log"), 'a')
         subprocess.call(pythonpixel_command, shell=True, stdout=pixellogfile, stderr=pixellogfile)
                    
-        cell_output = os.path.join(output_path, "celleval")
-        if not os.path.exists(cell_output):
-            os.mkdir(cell_output)
-        pythoncell_command = "python /home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/polus-plugins/features/polus-cellular-evaluation-plugin/src/main.py" + \
-                        f" --GTDir {gt_collection}" + \
-                        f" --PredDir {pr_collection}" + \
-                        f" --inputClasses 1" + \
-                        f" --totalStats True" + \
-                        f" --totalSummary True" + \
-                        f" --outDir {cell_output}" 
+        # cell_output = os.path.join(output_path, "celleval")
+        # if not os.path.exists(cell_output):
+        #     os.mkdir(cell_output)
+        # pythoncell_command = "python /home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/polus-plugins/features/polus-cellular-evaluation-plugin/src/main.py" + \
+        #                 f" --GTDir {gt_collection}" + \
+        #                 f" --PredDir {pr_collection}" + \
+        #                 f" --inputClasses 1" + \
+        #                 f" --totalStats true" + \
+        #                 f" --totalSummary true" + \
+        #                 f" --outDir {cell_output}" 
 
-        celllogfile = open(os.path.join(cell_output, "logs.log"), 'a')
-        subprocess.call(pythoncell_command, shell=True, stdout=celllogfile, stderr=celllogfile)
+        # print(pythoncell_command)
+        # celllogfile = open(os.path.join(cell_output, "logs.log"), 'a')
+        # subprocess.call(pythoncell_command, shell=True, stdout=celllogfile, stderr=celllogfile)
         
         
 NUM_GPUS = len(available_gpus)
@@ -174,7 +182,7 @@ PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
 for gpu_ids in (range(8)):
     queue.put(str(gpu_ids))
             
-with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
+with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             # i = 0
     for smp_input in smp_inputs_list:
         executor.submit(evaluation, smp_input, queue.get())
