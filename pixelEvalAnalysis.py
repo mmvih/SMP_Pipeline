@@ -33,8 +33,9 @@ import time
 
 """INPUT PARAMETERS"""
 
+# checkme : outputpath
 smp_inputs_path =  "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP/"
-smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/test_output_SMP_eval/"
+smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP_eval/"
 
 testing_images = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/image/"
 testing_labels = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/groundtruth_centerbinary_2pixelsmaller/"
@@ -46,8 +47,9 @@ available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())
 def getLoader(images_Dir, 
               labels_Dir):
     
-    # filepattern = ".*"
-    filepattern = "nuclear_test_6{xx}.tif"
+    # checkme : filepattern
+    filepattern = ".*"
+    # filepattern = "nuclear_test_6{xx}.tif"
     images_fp = FilePattern(testing_images, filepattern)
     labels_fp = FilePattern(testing_labels, filepattern)
 
@@ -209,13 +211,18 @@ print("Queued up GPUs")
 
 iter_smp_inputs_list = iter(smp_inputs_list)
 
-counter = 0      
+counter = 0
+sleeping_in = 0     
 with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
     while counter != len(smp_inputs_list)-1:
         if not queue.empty():
             # print("NEW THREAD")
+            sleeping_in = 0
             executor.submit(evaluation, next(iter_smp_inputs_list), queue.get())
             counter = counter + 1
         else:
+            sleeping_in += 1
+            if sleeping_in > 10:
+                raise ValueError("Wake Up") 
             time.sleep(60)
             continue
