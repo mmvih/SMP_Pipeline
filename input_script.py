@@ -16,7 +16,7 @@ import torch
 import subprocess
 
 import concurrent.futures
-
+import time
 
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
@@ -79,7 +79,34 @@ encodervariant_dictionary = {
  'dpn68': 'DPN', 'dpn68b': 'DPN', 'dpn92': 'DPN', 'dpn98': 'DPN', 'dpn107': 'DPN', 'dpn131': 'DPN', 
  
  'vgg11': 'VGG', 'vgg11_bn': 'VGG', 'vgg13': 'VGG', 'vgg13_bn': 'VGG', 
- 'vgg16': 'VGG', 'vgg16_bn': 'VGG', 'vgg19': 'VGG', 'vgg19_bn': 'VGG'}
+ 'vgg16': 'VGG', 'vgg16_bn': 'VGG', 'vgg19': 'VGG', 'vgg19_bn': 'VGG',
+ 
+"efficientnetv2_l" : 'TIMM',
+"efficientnetv2_l_in21k_tf": 'TIMM',
+"efficientnetv2_m": 'TIMM',
+"efficientnetv2_m_in21k_tf": 'TIMM',
+"efficientnetv2_s": 'TIMM',
+"efficientnetv2_s_in21k_tf" : 'TIMM',
+"mixnet_l": 'TIMM',
+"mixnet_m": 'TIMM',
+"mixnet_s": 'TIMM',
+"mixnet_xl": 'TIMM',
+"mixnet_xxl": 'TIMM',
+"nfnet_f0": 'TIMM',
+"nfnet_f1": 'TIMM',
+"nfnet_f2": 'TIMM',
+"nfnet_f3": 'TIMM',
+"nfnet_f4": 'TIMM',
+"nfnet_f5": 'TIMM',
+"nfnet_f6": 'TIMM',
+"nfnet_f7": 'TIMM',
+"nfnet_l0_eca": 'TIMM',
+"nfnet_l1_eca": 'TIMM',
+"nfnet_l2_eca": 'TIMM',
+"nfnet_l3_eca": 'TIMM',
+"swinnet26t_256": 'TIMM',
+"swinnet50ts_256": 'TIMM',
+"swinnext26ts_256_eca": 'TIMM'}
 
 queue = Queue()
 
@@ -264,6 +291,23 @@ def main():
                 # i = i + 1
                 # if i > 100:
                 #     break
+
+        counter = 0
+        sleeping_in = 0     
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            while counter != NUM_PROCESSES:
+                if not queue.empty():
+                    # print("NEW THREAD")
+                    sleeping_in = 0
+                    executor.submit(csv_rowprocess, row, headers, **input_kwargs)
+                    counter = counter + 1
+                else:
+                    sleeping_in += 1
+                    if sleeping_in > 10:
+                        raise ValueError("Wake Up") 
+                    time.sleep(45)
+                    continue
+
 
     except Exception as e:
         print(e)
