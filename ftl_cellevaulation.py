@@ -35,7 +35,7 @@ import time
 
 # checkme : outputpath
 smp_inputs_path =  "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP/"
-smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP_ftl/"
+smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/output_SMP_ftl_round2/"
 
 testing_images = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/image/"
 testing_labels = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/groundtruth_centerbinary_2pixelsmaller/"
@@ -141,39 +141,39 @@ def evaluation(smp_model : str,
         
         img_count = 0
         print(f"Generating predictions for {smp_model} : saving in {output_path}", flush=True)
-        for im, gt in test_loader:
-            im_tensor = torch.from_numpy(im).to(tor_device).unsqueeze(0)
-            pr_tensor = model.predict(im_tensor)
+        # for im, gt in test_loader:
+        #     im_tensor = torch.from_numpy(im).to(tor_device).unsqueeze(0)
+        #     pr_tensor = model.predict(im_tensor)
             
-            gt = gt.squeeze()[..., None, None, None]
+        #     gt = gt.squeeze()[..., None, None, None]
 
-            pr = pr_tensor.cpu().detach().numpy().squeeze()[..., None, None, None]
-            pr[pr >= .50] = 1
-            pr[pr < .50] = 0            
+        #     pr = pr_tensor.cpu().detach().numpy().squeeze()[..., None, None, None]
+        #     pr[pr >= .50] = 1
+        #     pr[pr < .50] = 0            
             
-            assert gt.shape == pr.shape
+        #     assert gt.shape == pr.shape
             
-            filename = names[img_count][:-4] + ".ome.tif"
-            pr_filename = os.path.join(pr_collection, filename)
-            gt_filename = os.path.join(gt_collection, filename)
+        #     filename = names[img_count][:-4] + ".ome.tif"
+        #     pr_filename = os.path.join(pr_collection, filename)
+        #     gt_filename = os.path.join(gt_collection, filename)
             
-            with BioWriter(pr_filename, Y=pr.shape[0],
-                                        X=pr.shape[1],
-                                        Z=1,
-                                        C=1,
-                                        T=1,
-                                        dtype=pr.dtype) as bw_pr:
-                bw_pr[:] = pr
+        #     with BioWriter(pr_filename, Y=pr.shape[0],
+        #                                 X=pr.shape[1],
+        #                                 Z=1,
+        #                                 C=1,
+        #                                 T=1,
+        #                                 dtype=pr.dtype) as bw_pr:
+        #         bw_pr[:] = pr
                 
-            with BioWriter(gt_filename, Y=gt.shape[0],
-                                        X=gt.shape[1],
-                                        Z=1,
-                                        C=1,
-                                        T=1,
-                                        dtype=gt.dtype) as bw_gt:
-                bw_gt[:] = gt
+        #     with BioWriter(gt_filename, Y=gt.shape[0],
+        #                                 X=gt.shape[1],
+        #                                 Z=1,
+        #                                 C=1,
+        #                                 T=1,
+        #                                 dtype=gt.dtype) as bw_gt:
+        #         bw_gt[:] = gt
             
-            img_count = img_count + 1
+        #     img_count = img_count + 1
             
         
             queue.put(cuda_num)
@@ -186,7 +186,7 @@ def evaluation(smp_model : str,
             #                 f" --individualStats False" + \
             #                 f" --totalStats True" + \
             #                 f" --outDir {pixel_output}"
-        
+        ftl_output_path = os.path.join(output_path, "ftl")
         if not os.path.exists(ftl_output_path):
             os.mkdir(ftl_output_path)
             
@@ -198,7 +198,7 @@ def evaluation(smp_model : str,
                             f"--inpDir {pr_collection} " + \
                             f"--outDir {ftl_output_path} " + \
                             f"--connectivity 1"
-            # print(pythonpixel_command)           
+            # print(pythonpixel_command) 
         logpath = os.path.join(output_path, "logs.log")
         pixellogfile = open(logpath, 'a')
         subprocess.call(python_command, shell=True, stdout=pixellogfile, stderr=pixellogfile)
