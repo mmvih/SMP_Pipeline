@@ -184,6 +184,8 @@ def csv_rowprocess(row, headers, **kwargs):
                             f" --device cuda:0" + \
                             f" --checkpointFrequency 5" + \
                             f" --minDelta .0001"
+                            # " --trainPattern cell_train_6{xx}.tif" + \
+                            # " --validPattern cell_validation_6{xx}.tif"
         num_arguments = len(headers)
         model_file = os.path.join(newdirectory_formodel, "model.pth")
         assert len(headers) == len(row)
@@ -191,8 +193,8 @@ def csv_rowprocess(row, headers, **kwargs):
             if row[argument_idx] != "NA":
                 docker_container = docker_container + f" --{headers[argument_idx]} {row[argument_idx]}"
                 if headers[argument_idx] == "encoderVariant":
-                    docker_container = docker_container + f" --encoderBase TIMM"
-                    # docker_container = docker_container + f" --encoderBase {encodervariant_dictionary[row[argument_idx]]}"
+                    # docker_container = docker_container + f" --encoderBase TIMM"
+                    docker_container = docker_container + f" --encoderBase {encodervariant_dictionary[row[argument_idx]]}"
             else:
                 continue
         if not os.path.exists(newdirectory_formodel):
@@ -278,33 +280,32 @@ def main():
         NUM_PROCESSES = int(len(list(csv_reader))) - 1
         PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
 
-        for gpu_ids in tqdm(range(8)):
+        for gpu_ids in tqdm(range(5)):
             queue.put(str(gpu_ids))
 
         csv_file.seek(0)
         headers = next(csv_reader)
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            # i = 0
-            for row in csv_reader:
-                executor.submit(csv_rowprocess, row, headers, **input_kwargs)
-                # i = i + 1
-                # if i > 100:
-                #     break
 
         counter = 0
         sleeping_in = 0     
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             while counter != NUM_PROCESSES:
                 if not queue.empty():
-                    # print("NEW THREAD")
                     sleeping_in = 0
+                    row = next(csv_reader)
+                    
+                    model_dirname = "-".join(row)
+                    model_dir     = os.path.join(input_kwargs["output_workdir"], model_dirname)
+                    modelpth_path = os.path.join(model_dir, "model.pth")
+
+                    if os.path.exists(modelpth_path):
+                        counter = counter + 1
+                        continue
+
                     executor.submit(csv_rowprocess, row, headers, **input_kwargs)
                     counter = counter + 1
                 else:
                     sleeping_in += 1
-                    if sleeping_in > 10:
-                        raise ValueError("Wake Up") 
                     time.sleep(45)
                     continue
 
