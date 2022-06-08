@@ -19,7 +19,8 @@ import concurrent.futures
 import bfio
 from bfio import BioWriter
 
-polus_dir = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/polus-plugins/segmentation/polus-smp-training-plugin/"
+base_dir = "/home/vihanimm/SegmentationModels/SMP_Pipeline"
+polus_dir = f"{base_dir}/polus-plugins/segmentation/polus-smp-training-plugin/"
 sys.path.append(polus_dir)
 
 from src.utils import Dataset
@@ -34,15 +35,14 @@ import time
 """INPUT PARAMETERS"""
 
 # checkme : outputpath
-smp_inputs_path =  "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/TOP10_output_SMP/"
-smp_outputs_path = "/home/vihanimm/SegmentationModelToolkit/workdir/SMP_Pipeline/TOP10_output_SMP_ftl/"
+smp_inputs_path =  f"{base_dir}/cytoplasm_models"
+smp_outputs_path = f"{base_dir}/cytoplasm_models_testoutputs"
 
-testing_images = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/image/"
-testing_labels = "/home/vihanimm/SegmentationModelToolkit/Data/tif_data/nuclear/test/groundtruth_centerbinary_2pixelsmaller/"
+testing_images = "/home/vihanimm/Data/tissuenet/tif_data/cell/test/image/"
+testing_labels = "/home/vihanimm/Data/tissuenet/tif_data/cell/test/groundtruth_centerbinary_2pixelsmaller/"
 
 smp_inputs_list = os.listdir(smp_inputs_path)
 
-available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]       
 
 def getLoader(images_Dir, 
               labels_Dir):
@@ -94,13 +94,13 @@ def evaluation(smp_model : str,
         model = torch.load(modelpth_path, map_location=tor_device)
         
         pr_collection = os.path.join(output_path, "predictions") # this is where images get saved to
-        gt_collection = os.path.join(output_path, "groundtruths")
+        # gt_collection = os.path.join(output_path, "groundtruths")
         
         
         if not os.path.exists(pr_collection):
             os.mkdir(pr_collection)
-        if not os.path.exists(gt_collection):
-            os.mkdir(gt_collection)
+        # if not os.path.exists(gt_collection):
+        #     os.mkdir(gt_collection)
         
         img_count = 0
         print(f"Generating predictions for {smp_model} : saving in {output_path}", flush=True)
@@ -118,7 +118,7 @@ def evaluation(smp_model : str,
             
             filename = names[img_count][:-4] + ".ome.tif"
             pr_filename = os.path.join(pr_collection, filename)
-            gt_filename = os.path.join(gt_collection, filename)
+            # gt_filename = os.path.join(gt_collection, filename)
             
             with BioWriter(pr_filename, Y=pr.shape[0],
                                         X=pr.shape[1],
@@ -128,13 +128,13 @@ def evaluation(smp_model : str,
                                         dtype=pr.dtype) as bw_pr:
                 bw_pr[:] = pr
                 
-            with BioWriter(gt_filename, Y=gt.shape[0],
-                                        X=gt.shape[1],
-                                        Z=1,
-                                        C=1,
-                                        T=1,
-                                        dtype=gt.dtype) as bw_gt:
-                bw_gt[:] = gt
+            # with BioWriter(gt_filename, Y=gt.shape[0],
+            #                             X=gt.shape[1],
+            #                             Z=1,
+            #                             C=1,
+            #                             T=1,
+            #                             dtype=gt.dtype) as bw_gt:
+            #     bw_gt[:] = gt
             
             img_count = img_count + 1
             
@@ -145,14 +145,14 @@ def evaluation(smp_model : str,
         queue.put(cuda_num)
         print(e)
             
-        
-NUM_GPUS = len(available_gpus)
+NUM_GPUS = 8
 NUM_PROCESSES = len(smp_inputs_list)
 PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
 
 
-for gpu_ids in (range(len(available_gpus))):
+for gpu_ids in (range(8)):
     print(gpu_ids, flush=True)
+    print(gpu_ids)
     queue.put(str(gpu_ids))
 print("Queued up GPUs", flush=True)
 
@@ -202,5 +202,5 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         else:
             sleeping_in += 1
             print(f"sleeping in : x{sleeping_in}", flush=True)
-            time.sleep(60)
+            time.sleep(5)
             continue
