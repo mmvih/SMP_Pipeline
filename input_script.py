@@ -132,7 +132,7 @@ def csv_rowprocess(row, headers, **kwargs):
         if not os.path.exists(newdirectory_formodel):
             os.makedirs(newdirectory_formodel)
             logfile = open(logpath, 'a')
-            print(f"Starting up Process: {docker_container}", flush=True)
+            logger.info(f"Starting up Process: {docker_container}", flush=True)
             subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
             if not os.path.exists(model_file):
                 ErrorFile = os.path.join(newdirectory_formodel, "ERROR")
@@ -159,7 +159,7 @@ def csv_rowprocess(row, headers, **kwargs):
                 logfile = open(logpath, 'a')
                 subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
             else:
-                print(f"Trying again: {docker_container}", flush=True)
+                logger.info(f"Trying again: {docker_container}", flush=True)
                 logfile = open(logpath, 'a')
                 subprocess.call(docker_container, shell=True, stdout=logfile, stderr=logfile, env=process_env)
                 
@@ -169,7 +169,7 @@ def csv_rowprocess(row, headers, **kwargs):
         #     create_plots(newdirectory_formodel, trainlogs, validlogs)
         logger.info('{}: ending process on GPU {}'.format(ident, gpu_id))
     except Exception as e:
-        print(e)
+        logger.info(f"ERROR {e}")
     finally:
         queue.put(gpu_id)
 
@@ -244,7 +244,7 @@ def main():
 
 
     except Exception as e:
-        print(e)
+        print(f"ERROR: {e}")
     
 
 main()
