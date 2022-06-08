@@ -1,28 +1,36 @@
 import os, sys
+import shutil
+
 import csv
+
 import logging, argparse
-# import pandas
+
 import itertools
 from itertools import repeat
 
-import shutil
-
 from tqdm import tqdm
-import numpy as np
 
+import numpy as np
 import matplotlib.pyplot as plt
-from multiprocessing import Pool, current_process, Queue 
+
 import torch
+
+from multiprocessing import current_process, Queue 
+import concurrent.futures
 import subprocess
 
-import concurrent.futures
 import time
 
+polus_smp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "polus-plugins/segmentation/polus-smp-training-plugin/")
+sys.path.append(polus_smp_dir)
+
+from src.utils import ENCODERS
+
+# available_gpus
 available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
 
 epochs = 500
 batchSize = 32
-
 
 logging.basicConfig(
     format='%(asctime)s - %(name)-8s - %(levelname)-8s - %(message)s',
@@ -31,82 +39,7 @@ logging.basicConfig(
 logger = logging.getLogger("pipeline")
 logger.setLevel("INFO")
 
-encodervariant_dictionary = {
- 'resnet18': 'ResNet', 'resnet34': 'ResNet', 'resnet50': 'ResNet', 
- 'resnet101': 'ResNet', 'resnet152': 'ResNet', 
- 
- 'resnext50_32x4d': 'ResNeXt', 'resnext101_32x4d': 'ResNeXt', 'resnext101_32x8d': 'ResNeXt', 
- 'resnext101_32x16d': 'ResNeXt', 'resnext101_32x32d': 'ResNeXt', 'resnext101_32x48d': 'ResNeXt',
- 'timm-res2net50_26w_4s': 'Res2NeXt', 'timm-res2net101_26w_4s': 'Res2NeXt', 'timm-res2net50_26w_6s': 'Res2NeXt', 
- 'timm-res2net50_26w_8s': 'Res2NeXt', 'timm-res2net50_48w_2s': 'Res2NeXt', 'timm-res2net50_14w_8s': 'Res2NeXt', 'timm-res2next50': 'Res2NeXt',
- 
- 'timm-resnest14d': 'ResNeSt', 'timm-resnest26d': 'ResNeSt', 'timm-resnest50d': 'ResNeSt', 
- 'timm-resnest101e': 'ResNeSt', 'timm-resnest200e': 'ResNeSt', 'timm-resnest269e': 'ResNeSt', 
- 'timm-resnest50d_4s2x40d': 'ResNeSt', 'timm-resnest50d_1s4x24d': 'ResNeSt', 
- 
- 'timm-regnetx_002': 'RegNetx/y', 'timm-regnetx_004': 'RegNetx/y', 'timm-regnetx_006': 'RegNetx/y', 'timm-regnetx_008': 'RegNetx/y', 
- 'timm-regnetx_016': 'RegNetx/y', 'timm-regnetx_032': 'RegNetx/y', 'timm-regnetx_040': 'RegNetx/y', 'timm-regnetx_064': 'RegNetx/y', 
- 'timm-regnetx_080': 'RegNetx/y', 'timm-regnetx_120': 'RegNetx/y', 'timm-regnetx_160': 'RegNetx/y', 'timm-regnetx_320': 'RegNetx/y', 
- 'timm-regnety_002': 'RegNetx/y', 'timm-regnety_004': 'RegNetx/y', 'timm-regnety_006': 'RegNetx/y', 'timm-regnety_008': 'RegNetx/y', 
- 'timm-regnety_016': 'RegNetx/y', 'timm-regnety_032': 'RegNetx/y', 'timm-regnety_040': 'RegNetx/y', 'timm-regnety_064': 'RegNetx/y', 
- 'timm-regnety_080': 'RegNetx/y', 'timm-regnety_120': 'RegNetx/y', 'timm-regnety_160': 'RegNetx/y', 'timm-regnety_320': 'RegNetx/y', 
- 
- 'timm-gernet_s': 'GERNet', 'timm-gernet_m': 'GERNet', 'timm-gernet_l': 'GERNet', 
- 
- 'senet154': 'SE-Net', 'se_resnet50': 'SE-Net', 'se_resnet101': 'SE-Net', 'se_resnet152': 'SE-Net', 'se_resnext50_32x4d': 'SE-Net', 
- 'se_resnext101_32x4d': 'SE-Net', 
- 
- 'timm-skresnet18': 'SK-ResNeXt', 'timm-skresnet34': 'SK-ResNeXt', 'timm-skresnext50_32x4d': 'SK-ResNeXt', 
- 
- 'densenet121': 'DenseNet', 'densenet169': 'DenseNet', 'densenet201': 'DenseNet', 'densenet161': 'DenseNet', 
- 
- 'inceptionresnetv2': 'Inception', 'inceptionv4': 'Inception', 'xception': 'Inception', 
- 
- 'efficientnet-b0': 'EfficientNet', 'efficientnet-b1': 'EfficientNet', 'efficientnet-b2': 'EfficientNet', 'efficientnet-b3': 'EfficientNet', 
- 'efficientnet-b4': 'EfficientNet', 'efficientnet-b5': 'EfficientNet', 'efficientnet-b6': 'EfficientNet', 'efficientnet-b7': 'EfficientNet', 
- 'timm-efficientnet-b0': 'EfficientNet', 'timm-efficientnet-b1': 'EfficientNet', 'timm-efficientnet-b2': 'EfficientNet', 
- 'timm-efficientnet-b3': 'EfficientNet', 'timm-efficientnet-b4': 'EfficientNet', 'timm-efficientnet-b5': 'EfficientNet', 
- 'timm-efficientnet-b6': 'EfficientNet', 'timm-efficientnet-b7': 'EfficientNet', 'timm-efficientnet-b8': 'EfficientNet', 
- 'timm-efficientnet-l2': 'EfficientNet', 
- 'timm-tf_efficientnet_lite0': 'EfficientNet', 'timm-tf_efficientnet_lite1': 'EfficientNet', 
- 'timm-tf_efficientnet_lite2': 'EfficientNet', 'timm-tf_efficientnet_lite3': 'EfficientNet', 
- 'timm-tf_efficientnet_lite4': 'EfficientNet', 
- 
- 'mobilenet_v2': 'MobileNet', 
- 'timm-mobilenetv3_large_075': 'MobileNet', 'timm-mobilenetv3_large_100': 'MobileNet', 'timm-mobilenetv3_large_minimal_100': 'MobileNet', 
- 'timm-mobilenetv3_small_075': 'MobileNet', 'timm-mobilenetv3_small_100': 'MobileNet', 'timm-mobilenetv3_small_minimal_100': 'MobileNet', 
- 
- 'dpn68': 'DPN', 'dpn68b': 'DPN', 'dpn92': 'DPN', 'dpn98': 'DPN', 'dpn107': 'DPN', 'dpn131': 'DPN', 
- 
- 'vgg11': 'VGG', 'vgg11_bn': 'VGG', 'vgg13': 'VGG', 'vgg13_bn': 'VGG', 
- 'vgg16': 'VGG', 'vgg16_bn': 'VGG', 'vgg19': 'VGG', 'vgg19_bn': 'VGG',
- 
-"efficientnetv2_l" : 'TIMM',
-"efficientnetv2_l_in21k_tf": 'TIMM',
-"efficientnetv2_m": 'TIMM',
-"efficientnetv2_m_in21k_tf": 'TIMM',
-"efficientnetv2_s": 'TIMM',
-"efficientnetv2_s_in21k_tf" : 'TIMM',
-"mixnet_l": 'TIMM',
-"mixnet_m": 'TIMM',
-"mixnet_s": 'TIMM',
-"mixnet_xl": 'TIMM',
-"mixnet_xxl": 'TIMM',
-"nfnet_f0": 'TIMM',
-"nfnet_f1": 'TIMM',
-"nfnet_f2": 'TIMM',
-"nfnet_f3": 'TIMM',
-"nfnet_f4": 'TIMM',
-"nfnet_f5": 'TIMM',
-"nfnet_f6": 'TIMM',
-"nfnet_f7": 'TIMM',
-"nfnet_l0_eca": 'TIMM',
-"nfnet_l1_eca": 'TIMM',
-"nfnet_l2_eca": 'TIMM',
-"nfnet_l3_eca": 'TIMM',
-"swinnet26t_256": 'TIMM',
-"swinnet50ts_256": 'TIMM',
-"swinnext26ts_256_eca": 'TIMM'}
+encodervariant_dictionary = {variant:base for base in ENCODERS for variant in ENCODERS[base]}
 
 queue = Queue()
 
@@ -193,7 +126,6 @@ def csv_rowprocess(row, headers, **kwargs):
             if row[argument_idx] != "NA":
                 docker_container = docker_container + f" --{headers[argument_idx]} {row[argument_idx]}"
                 if headers[argument_idx] == "encoderVariant":
-                    # docker_container = docker_container + f" --encoderBase TIMM"
                     docker_container = docker_container + f" --encoderBase {encodervariant_dictionary[row[argument_idx]]}"
             else:
                 continue
@@ -207,6 +139,7 @@ def csv_rowprocess(row, headers, **kwargs):
                 with open(ErrorFile, 'w') as errorfile:
                     pass
             else:
+                # MOVE CHECKPOINT_FINAL AND MODEL_FINAL and delete all the checkpoints if subprocess run was successful
                 checkpoint_dirpath = os.path.join(newdirectory_formodel, "checkpoints")
                 checkpoint_finalpath = os.path.join(checkpoint_dirpath, "checkpoint_final.pth")
                 model_finalpath      = os.path.join(checkpoint_dirpath, "model_final.pth")
