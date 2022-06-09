@@ -52,7 +52,7 @@ def main():
 
     parser.add_argument('--inputPredictions', dest='inputPredictions', type=str, required=True, \
                         help='Path to Directory containing Input Predictions for all Models')
-    parser.add_argument('--inputGroundtruth', dest='inputGroundtruth', type=str, required=False,
+    parser.add_argument('--inputGroundtruth', dest='inputGroundtruth', type=str, required=True,
                         help='Path to Groundtruth Directory that match the inputPredictions')
     parser.add_argument('--outputLabels', dest='outputLabels', type=str, required=True,
                         help='Path to where the Output Labels will be saved')
@@ -76,6 +76,7 @@ def main():
 
     iter_smp_inputs_list = iter(input_predictions_list)
     
+    counter = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-10) as executor:
         while counter != len(input_predictions_list)-1:
             
@@ -91,11 +92,11 @@ def main():
             num_predictions = len(os.listdir(prediction_input_path))
             if os.path.exists(prediction_input_path):
                 if num_predictions != num_examples:
-                    logger.debug(f"Not Running - there are {num_predictions} and not {num_examples}")
+                    logger.debug(f"Not Running - there are {num_predictions} and not {num_examples}\n")
                     counter += 1
                     continue
             else:
-                logger.debug(f"{curr_smp_model} does not have a prediction directory at {prediction_input_path}")
+                logger.debug(f"{curr_smp_model} does not have a prediction directory at {prediction_input_path}\n")
                 counter += 1
                 continue
             
@@ -104,7 +105,7 @@ def main():
             num_ftls = len(os.listdir(ftl_output_path))
             if os.path.exists(ftl_output_path):
                 if num_ftls == num_examples:
-                    logger.debug(f"Not Running - output already exists with {num_examples} for {output_smp_path}")
+                    logger.debug(f"Not Running - output already exists with {num_examples} for {output_smp_path}\n")
                     counter += 1
                     continue
             
