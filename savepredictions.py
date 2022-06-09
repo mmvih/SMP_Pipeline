@@ -29,55 +29,50 @@ logging.basicConfig(
     datefmt='%d-%b-%y %H:%M:%S',
 )
 logger = logging.getLogger("savepredictions")
-logger.setLevel("INFO")
+logger.setLevel("DEBUG")
 
 
 def getLoader(images_Dir, 
-              labels_Dir):
+              labels_Dir,
+              file_pattern):
     
-    filepattern = ".*"
-    images_fp = FilePattern(images_Dir, filepattern)
-    labels_fp = FilePattern(labels_Dir, filepattern)
+    images_fp = FilePattern(images_Dir, file_pattern)
+    labels_fp = FilePattern(labels_Dir, file_pattern)
 
     image_array, label_array, names = get_labels_mapping(images_fp(), labels_fp(), provide_names=True)
 
     testing_dataset = Dataset(images=image_array,
                               labels=label_array)
-    testing_loader = MultiEpochsDataLoader(testing_dataset, num_workers=4, batch_size=10, shuffle=True, pin_memory=True, drop_last=True)
+    testing_loader = MultiEpochsDataLoader(testing_dataset, num_workers=4, batch_size=32, shuffle=True, pin_memory=True, drop_last=True)
     
     return testing_dataset, images_fp, labels_fp, names
 
 """MAKING PREDICTIONS"""
-
 queue = Queue()
-def evaluation(smp_model : str, 
-               cuda_num : str,
-               smp_inputs_path : str,
-               smp_outputs_path : str,
+def evaluation(cuda_num : str,
+               smp_input_path : str,
+               smp_output_path : str,
                test_loader,
                names):
 
     
     try:
-        smp_model_dirpath = os.path.join(smp_inputs_path, smp_model)
-        logger.info("LOOKING AT: ", smp_model_dirpath)
         
-        modelpth_path = os.path.join(smp_model_dirpath, "model.pth")
+        modelpth_path = os.path.join(smp_input_path, "model.pth")
         
-        output_path = os.path.join(smp_outputs_path, smp_model)
-        if not os.path.exists(output_path):
-            os.mkdir(output_path)
+        if not os.path.exists(smp_output_path):
+            os.mkdir(smp_output_path)
         
         tor_device = torch.device(f"cuda:{cuda_num}")
         model = torch.load(modelpth_path, map_location=tor_device)
         
-        pr_collection = os.path.join(output_path, "predictions") # this is where images get saved to
+        predictions_path = os.path.join(smp_output_path, "predictions") # this is where images get saved to
   
-        if not os.path.exists(pr_collection):
-            os.mkdir(pr_collection)
+        if not os.path.exists(predictions_path):
+            os.mkdir(predictions_path)
         
         img_count = 0
-        logger.info(f"Generating predictions for {smp_model} : saving in {output_path}")
+        logger.info(f"Saving predictions at {predictions_path}")
         for im, gt in test_loader:
             im_tensor = torch.from_numpy(im).to(tor_device).unsqueeze(0)
             pr_tensor = model.predict(im_tensor)
@@ -88,7 +83,7 @@ def evaluation(smp_model : str,
             
             
             filename = names[img_count][:-4] + ".ome.tif"
-            pr_filename = os.path.join(pr_collection, filename)
+            pr_filename = os.path.join(predictions_path, filename)
             
             with BioWriter(pr_filename, Y=pr.shape[0],
                                         X=pr.shape[1],
@@ -116,74 +111,85 @@ def main():
                         help='Path to Input Models')
     parser.add_argument('--outputPredictions', dest='outputPredictions', type=str, required=True, \
                         help='Path to Output Predictions')
-    parser.add_argument('--imagesTestDir', dest='imagesTrainDir', type=str, required=True, \
+    parser.add_argument('--imagesTestDir', dest='imagesTestDir', type=str, required=True, \
                         help='Path to Images that are for testing')
-    parser.add_argument('--labelsTestDir', dest='labelsTrainDir', type=str, required=True, \
+    parser.add_argument('--labelsTestDir', dest='labelsTestDir', type=str, required=True, \
                         help='Path to Labels that are for testing')
+    parser.add_argument('--filePattern', dest='filePattern', type=str, required=False,
+                        default=".*", help="Pattern of Images for creating predictions")
     
     args = parser.parse_args()
-    smp_inputs_path =  args.inputModels
-    smp_outputs_path = args.outputPredictions
+    input_models_dirpath =  args.inputModels
+    output_predictions_dirpath = args.outputPredictions
+    logger.info(f"Input Models Directory : {input_models_dirpath}")
+    logger.info(f"Output Predictions Directory : {output_predictions_dirpath}")
     
-    testing_images = args.imagesTestDir
-    testing_labels = args.labelsTestDir
+    testing_images_dirpath = args.imagesTestDir
+    testing_labels_dirpath = args.labelsTestDir
+    logger.info(f"Testing Images Directory : {testing_images_dirpath}")
+    logger.info(f"Testing Labels Directory : {testing_labels_dirpath}")
     
-    smp_inputs_list = os.listdir(smp_inputs_path)
+    file_pattern = args.filePattern
+    logger.info(f"File Pattern : {file_pattern}")
     
-    NUM_GPUS = 8
-    NUM_PROCESSES = len(smp_inputs_list)
-    PROC_PER_GPU = int(np.ceil(NUM_PROCESSES/NUM_GPUS))
+    input_models_list = os.listdir(input_models_dirpath)
+    num_models = len(input_models_list)
+    logger.info(f"There are {num_models} to generate predictions for")
+    
+    NUM_GPUS = torch.cuda.device_count()
+    NUM_PROCESSES = num_models
 
-    logger.info("Queuing up GPUs ...")
+    logger.info(f"Queuing up {NUM_GPUS} GPUs ...")
     for gpu_ids in (range(NUM_GPUS)):
         queue.put(str(gpu_ids))
 
-    iter_smp_inputs_list = iter(smp_inputs_list)
+    iter_input_models_list = iter(input_models_list)
 
-    num_models = len(smp_inputs_list)
- 
-    
     logger.info("Getting Loaders ...")
-    test_loader, _, _, names = getLoader(images_Dir=testing_images,
-                                         labels_Dir=testing_labels)
+    test_loader, _, _, names = getLoader(images_Dir=testing_images_dirpath,
+                                         labels_Dir=testing_labels_dirpath,
+                                         file_pattern=file_pattern)
+    num_examples = len(test_loader)
+    logger.info(f"Each model will be generating {num_examples} predictions")
 
     counter = 0
     sleeping_in = 0    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        while counter != len(smp_inputs_list)-1:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=NUM_GPUS+(NUM_GPUS/2)) as executor:
+        while counter != num_models-1:
             if not queue.empty():
                 sleeping_in = 0
                 
-                curr_smp_model = next(iter_smp_inputs_list)
+                curr_smp_model = next(iter_input_models_list)
+                logger.info(f"LOOKING at {curr_smp_model}")
                 
-                smp_model_dirpath = os.path.join(smp_inputs_path, curr_smp_model)
+                # looking at only ONE input model and ONE output location
+                input_model_dirpath = os.path.join(input_models_dirpath, curr_smp_model)
+                output_prediction_dirpath = os.path.join(output_predictions_dirpath, curr_smp_model)
                 
-                ERROR_path = os.path.join(smp_model_dirpath, "ERROR")
+                ERROR_path = os.path.join(input_model_dirpath, "ERROR")
                 if os.path.exists(ERROR_path):
-                    logger.debug(f"Not Running - ERROR Exists {smp_model_dirpath}")
+                    logger.debug(f"Not Running - ERROR Exists {input_model_dirpath}")
                     counter += 1
                     continue
                 
-                modelpth_path = os.path.join(smp_model_dirpath, "model.pth")
+                modelpth_path = os.path.join(input_model_dirpath, "model.pth")
                 if not os.path.exists(modelpth_path):
                     counter += 1
-                    logger.debug(f"Not Running - model.pth does not Exists {smp_model_dirpath}")
+                    logger.debug(f"Not Running - model.pth does not Exists {input_model_dirpath}")
                     continue
                 
-                
-                output_path = os.path.join(smp_outputs_path, curr_smp_model)
-                pr_collection = os.path.join(output_path, "predictions") # this is where images get saved to
-    
-                if os.path.exists(pr_collection):
-                    if len(os.listdir(pr_collection)) == 1249:
+                predictions_path = os.path.join(output_prediction_dirpath, "predictions") # this is where images get saved to
+                if os.path.exists(predictions_path):
+                    num_predictions = len(os.listdir(predictions_path))
+                    if num_predictions == num_examples:
                         counter += 1
-                        logger.debug(f"Not Running - already has outputs")
+                        logger.debug(f"Not Running - already has outputs {output_prediction_dirpath}")
                         continue
     
                 
-                executor.submit(evaluation, curr_smp_model, queue.get(), smp_inputs_path, smp_outputs_path, test_loader, names)
+                executor.submit(evaluation, queue.get(), input_model_dirpath, output_prediction_dirpath, test_loader, names)
                 counter = counter + 1
-                logger.info(f"analyzed {counter}/{num_models-1} models")
+                logger.info(f"analyzed {counter}/{num_models-1} models\n")
 
             else:
                 sleeping_in += 1
