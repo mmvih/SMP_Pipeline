@@ -11,7 +11,7 @@ polus_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "polus-plug
 
 logging.basicConfig(
     format='%(asctime)s - %(name)-8s - %(levelname)-8s - %(message)s',
-    datefmt='%d-%b-%y %H:%M:%S',
+    datefmt='%d-%b-%y %H:%M:%S'
 )
 logger = logging.getLogger("ftl")
 logger.setLevel("DEBUG")
@@ -25,11 +25,13 @@ def evaluation(prediction_input_path : str,
 
         assert os.path.exists(prediction_input_path)
         
+        assert os.path.dirname(prediction_input_path) == os.path.dirname(ftl_output_path)
+        
         if not os.path.exists(ftl_output_path):
             os.mkdir(ftl_output_path)
         
         python_ftl_main = os.path.join(polus_dir, "transforms/images/polus-ftl-label-plugin/src/main.py")
-        python_command = f"python {python_ftl_main}" + \
+        python_command = f"python {python_ftl_main} " + \
                          f"--inpDir {prediction_input_path} " + \
                          f"--outDir {ftl_output_path} " + \
                          f"--connectivity 1"
@@ -77,21 +79,25 @@ def main():
     iter_smp_inputs_list = iter(input_predictions_list)
     
     counter = 0
+    logger.info("\n")
     with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-10) as executor:
-        while counter != len(input_predictions_list)-1:
+        while counter != num_models-1:
             
             curr_smp_model = next(iter_smp_inputs_list)
             logger.info(f"Looking at {curr_smp_model}")
 
             # input and output path for the models
-            input_smp_path  = os.path.join(input_predictions_path, curr_smp_model)
-            output_smp_path = os.path.join(output_labels_path, curr_smp_model)
+            input_prediction_path  = os.path.join(input_predictions_path, curr_smp_model)
+            output_label_path = os.path.join(output_labels_path, curr_smp_model)
+            logger.debug(f"Input Predictions Path : {input_prediction_path}")
+            logger.debug(f"Output Labels Path : {output_label_path}")
             
-            # make sure there are input predictions for the current segmentation model that is being analyzed
-            prediction_input_path = os.path.join(input_smp_path, "predictions")
-            num_predictions = len(os.listdir(prediction_input_path))
+            # make sure there are expect number of input predictions for the 
+            #   current segmentation model that is being analyzed
+            prediction_input_path = os.path.join(input_prediction_path, "predictions")
             if os.path.exists(prediction_input_path):
-                if num_predictions != num_examples:
+                num_predictions = len(os.listdir(prediction_input_path))
+                if num_predictions < num_examples:
                     logger.debug(f"Not Running - there are {num_predictions} and not {num_examples}\n")
                     counter += 1
                     continue
@@ -101,17 +107,16 @@ def main():
                 continue
             
             # if theres already an output, then do not waste time/resources rerunning it
-            ftl_output_path = os.path.join(output_smp_path, "ftl")
-            num_ftls = len(os.listdir(ftl_output_path))
+            ftl_output_path = os.path.join(output_label_path, "ftl")
             if os.path.exists(ftl_output_path):
-                if num_ftls == num_examples:
-                    logger.debug(f"Not Running - output already exists with {num_examples} for {output_smp_path}\n")
+                num_ftls = len(os.listdir(ftl_output_path))
+                if num_ftls >= num_examples:
+                    logger.debug(f"Not Running - output already exists with {num_examples} for {output_label_path}\n")
                     counter += 1
                     continue
             
             executor.submit(evaluation, prediction_input_path, ftl_output_path)
             counter = counter + 1
             logger.info(f"analyzed {counter}/{num_models-1} models\n")
-            break
             
 main()
