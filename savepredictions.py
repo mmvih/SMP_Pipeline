@@ -1,7 +1,5 @@
-import os,sys,json
-import logging, argparse
-import copy
-import shutil
+import os,sys
+import logging,argparse
 
 import numpy as np
 
@@ -9,8 +7,6 @@ import bfio
 from bfio import BioWriter
 
 from filepattern import FilePattern 
-
-import tempfile
 
 import torch
 import torchvision
@@ -32,17 +28,14 @@ logging.basicConfig(
     format='%(asctime)s - %(name)-8s - %(levelname)-8s - %(message)s',
     datefmt='%d-%b-%y %H:%M:%S',
 )
-logger = logging.getLogger("pipeline")
+logger = logging.getLogger("savepredictions")
 logger.setLevel("INFO")
-
-
 
 
 def getLoader(images_Dir, 
               labels_Dir):
     
     filepattern = ".*"
-    # filepattern = "nuclear_test_60{x}.tif"
     images_fp = FilePattern(images_Dir, filepattern)
     labels_fp = FilePattern(labels_Dir, filepattern)
 
@@ -52,12 +45,7 @@ def getLoader(images_Dir,
                               labels=label_array)
     testing_loader = MultiEpochsDataLoader(testing_dataset, num_workers=4, batch_size=10, shuffle=True, pin_memory=True, drop_last=True)
     
-    testing_dataset_vis = Dataset(images=image_array,
-                                    labels=label_array,
-                                    preprocessing=torchvision.transforms.Compose([torchvision.transforms.ToTensor()]))
-    testing_loader_vis = MultiEpochsDataLoader(testing_dataset_vis, num_workers=4, batch_size=10, shuffle=True, pin_memory=True, drop_last=True)
-        
-    return testing_dataset, testing_dataset_vis, images_fp, labels_fp, names
+    return testing_dataset, images_fp, labels_fp, names
 
 """MAKING PREDICTIONS"""
 
@@ -72,7 +60,7 @@ def evaluation(smp_model : str,
     
     try:
         smp_model_dirpath = os.path.join(smp_inputs_path, smp_model)
-        logger.info("LOOKING AT: ", smp_model_dirpath, flush=True)
+        logger.info("LOOKING AT: ", smp_model_dirpath)
         
         modelpth_path = os.path.join(smp_model_dirpath, "model.pth")
         
@@ -89,18 +77,15 @@ def evaluation(smp_model : str,
             os.mkdir(pr_collection)
         
         img_count = 0
-        print(f"Generating predictions for {smp_model} : saving in {output_path}", flush=True)
+        logger.info(f"Generating predictions for {smp_model} : saving in {output_path}")
         for im, gt in test_loader:
             im_tensor = torch.from_numpy(im).to(tor_device).unsqueeze(0)
             pr_tensor = model.predict(im_tensor)
-            
-            gt = gt.squeeze()[..., None, None, None]
 
             pr = pr_tensor.cpu().detach().numpy().squeeze()[..., None, None, None]
             pr[pr >= .50] = 1
             pr[pr < .50] = 0
             
-            assert gt.shape == pr.shape
             
             filename = names[img_count][:-4] + ".ome.tif"
             pr_filename = os.path.join(pr_collection, filename)
@@ -159,8 +144,8 @@ def main():
  
     
     logger.info("Getting Loaders ...")
-    test_loader, _, _, _, names = getLoader(images_Dir=testing_images,
-                                            labels_Dir=testing_labels)
+    test_loader, _, _, names = getLoader(images_Dir=testing_images,
+                                         labels_Dir=testing_labels)
 
     counter = 0
     sleeping_in = 0    
