@@ -76,14 +76,11 @@ def main():
     num_examples = len(input_groundtruth_list)
     logger.info(f"Each model has generated {num_examples} predictions")
 
-    iter_smp_inputs_list = iter(input_predictions_list)
-    
     counter = 0
     logger.info("\n")
     with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-10) as executor:
-        while counter != num_models-1:
+        for curr_smp_model in input_predictions_list:
             
-            curr_smp_model = next(iter_smp_inputs_list)
             logger.info(f"Looking at {curr_smp_model}")
 
             # input and output path for the models
@@ -98,12 +95,12 @@ def main():
             if os.path.exists(prediction_input_path):
                 num_predictions = len(os.listdir(prediction_input_path))
                 if num_predictions < num_examples:
-                    logger.debug(f"Not Running - there are {num_predictions} and not {num_examples}\n")
                     counter += 1
+                    logger.debug(f"Not Running {counter}/{num_models} - there are {num_predictions} and not {num_examples}\n")
                     continue
             else:
-                logger.debug(f"{curr_smp_model} does not have a prediction directory at {prediction_input_path}\n")
                 counter += 1
+                logger.debug(f"Not running {counter}/{num_models} - {curr_smp_model} does not have a prediction directory at {prediction_input_path}\n")
                 continue
             
             # if theres already an output, then do not waste time/resources rerunning it
@@ -111,12 +108,15 @@ def main():
             if os.path.exists(ftl_output_path):
                 num_ftls = len(os.listdir(ftl_output_path))
                 if num_ftls >= num_examples:
-                    logger.debug(f"Not Running - output already exists with {num_examples} for {output_label_path}\n")
                     counter += 1
+                    logger.debug(f"Not Running {counter}/{num_models} - output already exists with {num_examples} for {output_label_path}\n")
                     continue
             
             executor.submit(evaluation, prediction_input_path, ftl_output_path)
             counter = counter + 1
-            logger.info(f"analyzed {counter}/{num_models-1} models\n")
+            logger.info(f"analyzed {counter}/{num_models} models\n")
+            
+            
+        logger.info(f"DONE ANALYZING ALL MODELS")
             
 main()
