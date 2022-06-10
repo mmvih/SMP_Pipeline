@@ -31,7 +31,7 @@ python write_csv.py --csvFile $csvInput
 
 # start training all the models
 python input_script.py \
---MainFile "./polus-plugins/segmentation/polus-smp-training-plugin/src/main.py" \
+--mainFile "./polus-plugins/segmentation/polus-smp-training-plugin/src/main.py" \
 --outputModel $outputModelsDir \
 --csvFile $csvInput \
 --imagesTrainDir $tissuenet_imagesTrainDir \

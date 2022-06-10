@@ -2,7 +2,7 @@ import os
 import logging,argparse
 
 import subprocess
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 
 import bfio
 from bfio import BioWriter
@@ -17,35 +17,32 @@ logger = logging.getLogger("evaluationPlugins")
 logger.setLevel("DEBUG")
 
 """MAKING PREDICTIONS"""
-def evaluation(input_prediction_path,
-               input_groundtruth_path,
-               output_evaluation_path,
+def evaluation(input_prediction_dirpath,
+               input_groundtruth_dirpath,
+               output_evaluation_dirpath,
                evaluation_metric):
     
     try:
 
-        if not os.path.exists(output_evaluation_path):
-            os.mkdir(output_evaluation_path)
-
-        logfile = os.path.join(output_evaluation_path, f"{evaluation_metric}_logs.log")
+        logfile = os.path.join(output_evaluation_dirpath, f"{evaluation_metric}_logs.log")
         logfile = open(logfile, 'w')
-        python_arguments = f" --GTDir {input_groundtruth_path}" + \
+        python_arguments = f" --GTDir {input_groundtruth_dirpath}" + \
                            f" --inputClasses 1" + \
                            f" --totalStats True" + \
-                           f" --outDir {output_evaluation_path}"
+                           f" --outDir {output_evaluation_dirpath}"
         
         if evaluation_metric == "PixelEvaluation":
-            prediction_path = os.path.join(input_prediction_path, "predictions")
+            predictions_path = os.path.join(input_prediction_dirpath, "predictions")
             python_main = os.path.join(polus_dir, "features/polus-cellular-evaluation-plugin/src/main.py")
             python_command = f"python {python_main}" + python_arguments + \
                                 f" --totalSummary True" + \
-                                f" --PredDir {prediction_path}"
+                                f" --PredDir {predictions_path}"
         else:
-            prediction_path = os.path.join(input_prediction_path, "ftl")
+            ftl_path = os.path.join(input_prediction_dirpath, "ftl")
             python_main = os.path.join(polus_dir, "features/polus-pixelwise-evaluation-plugin/src/main.py")
             python_command = f"python {python_main}" + python_arguments + \
                                 f" --individualStats False" + \
-                                f" --PredDir {prediction_path}"
+                                f" --PredDir {ftl_path}"
         
         subprocess.call(python_command, shell=True, stdout=logfile, stderr=logfile)
         logger.debug(python_command)
@@ -72,58 +69,52 @@ def main():
                         help="Running either Pixel Evaluation or Cellular Evaluation Plugin")
 
     args = parser.parse_args()
-    input_predictions_path = args.inputPredictions
-    input_groundtruth_path = args.inputGroundtruth
-    output_metrics_path    = args.outputMetrics
+    input_predictions_dirpath = args.inputPredictions
+    input_groundtruth_dirpath = args.inputGroundtruth
+    output_metrics_dirpath    = args.outputMetrics
     evaluation_metric      = args.evaluationMetric
     
-    logger.info(f"Input Predictions Directory : {input_predictions_path}")
-    logger.info(f"Input Groundtruth Directory : {input_groundtruth_path}")
-    logger.info(f"Output Metrics Path : {output_metrics_path}")
+    logger.info(f"Input Predictions Directory : {input_predictions_dirpath}")
+    logger.info(f"Input Groundtruth Directory : {input_groundtruth_dirpath}")
+    logger.info(f"Output Metrics Path : {output_metrics_dirpath}")
     logger.info(f"Evaluation Metric : {evaluation_metric}")
     
-    input_predictions_list = os.listdir(input_predictions_path)
+    input_predictions_list = os.listdir(input_predictions_dirpath)
     num_models = len(input_predictions_list)
-    logger.info(f"There are {num_models} to iterate through")
-    
-    input_groundtruth_list = os.listdir(input_groundtruth_path)
-    num_examples = len(input_groundtruth_list)
-    logger.info(f"Each model has generated {num_examples} predictions")
 
+    input_groundtruth_list = os.listdir(input_groundtruth_dirpath)
+    num_examples = len(input_groundtruth_list)
+    
     counter = 0
-    logger.info("\n")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-10) as executor:
+    logger.info(f"\nIterating through {num_models} models ...")
+    logger.info(f"Each model will be generating {num_examples} predictions")
+    with ThreadPoolExecutor(max_workers=os.cpu_count()-10) as executor:
         for curr_smp_model in input_predictions_list:
             
-            logger.info(f"Looking at {curr_smp_model}")
+            counter += 1
+            logger.info(f"\n{counter}. {curr_smp_model}")
             
-            input_prediction_path = os.path.join(input_predictions_path, curr_smp_model)
-            output_metric_path = os.path.join(output_metrics_path, curr_smp_model)
-            logger.debug(f"Input Predictions Path : {input_prediction_path}")
-            logger.debug(f"Output Labels Path : {output_metric_path}") 
+            input_prediction_dirpath = os.path.join(input_predictions_dirpath, curr_smp_model)
+            output_metric_dirpath = os.path.join(output_metrics_dirpath, curr_smp_model)
+            logger.debug(f"Input Prediction Path : {input_prediction_dirpath}")
+            logger.debug(f"Output Label Path : {output_metric_dirpath}") 
         
-            output_evaluation_path = os.path.join(output_metric_path, evaluation_metric)
-            total_stats_result_path = os.path.join(output_evaluation_path, "total_stats_result.csv")
+            output_evaluation_dirpath = os.path.join(output_metric_dirpath, evaluation_metric)
+            total_stats_result_path = os.path.join(output_evaluation_dirpath, "total_stats_result.csv")
             if os.path.exists(total_stats_result_path):
-                counter = counter + 1
                 logger.debug(f"Not Running {counter}/{num_models} - output already exists ({total_stats_result_path})")
                 continue
 
+            if not os.path.exists(output_evaluation_dirpath):
+                os.mkdir(output_evaluation_dirpath)
 
-            output_evaluation_path = os.path.join(output_metric_path, evaluation_metric)
-            total_stats_result_path = os.path.join(output_evaluation_path, "total_stats_result.csv")
-            if os.path.exists(total_stats_result_path):
-                logger.debug(f"Not Running {counter}/{num_models} - output already exists ({total_stats_result_path})")
-            else:
-                executor.submit(evaluation, 
-                                input_prediction_path,
-                                input_groundtruth_path,
-                                output_evaluation_path,
-                                evaluation_metric)
+            executor.submit(evaluation, 
+                            input_prediction_dirpath,
+                            input_groundtruth_dirpath,
+                            output_evaluation_dirpath,
+                            evaluation_metric)
 
-            counter = counter + 1
             logger.info(f"analyzed {counter}/{num_models} models\n")
-            
-    logger.info(f"DONE ANALYZING ALL MODELS")
+    logger.info(f"DONE ANALYZING ALL MODELS!")
     
 main()
