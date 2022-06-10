@@ -258,6 +258,8 @@ def main():
         
         with open(models_metric_output_path, 'w') as models_metric_output_json_file:
             json.dump(models_metric_dict, models_metric_output_json_file, indent=4)
+            
+    logger.info(f"Done Summarizing!")
     
 
 main()
