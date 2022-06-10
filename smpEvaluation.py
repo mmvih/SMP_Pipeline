@@ -22,18 +22,19 @@ import time
 polus_smp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "polus-plugins/segmentation/polus-smp-training-plugin/")
 sys.path.append(polus_smp_dir)
 
-from src.utils import Dataset
-from src.utils import get_labels_mapping
 from src.training import initialize_dataloader
 from src.training import MultiEpochsDataLoader
+from src.utils import Dataset
+from src.utils import get_labels_mapping
 from src.utils import METRICS
 from src.utils import LOSSES
+from src.utils import MODELS
 
 logging.basicConfig(
     format='%(asctime)s - %(name)-8s - %(levelname)-8s - %(message)s',
     datefmt='%d-%b-%y %H:%M:%S',
 )
-logger = logging.getLogger("savepredictions")
+logger = logging.getLogger("smpEvaluation")
 logger.setLevel("DEBUG")
 
 NUM_GPUS = torch.cuda.device_count()
@@ -54,96 +55,91 @@ def getLoader(images_Dir,
     
     return testing_dataset, images_fp, labels_fp, names
 
-def evaluation(tor_device : torch.cuda.device,
+def evaluation(tor_device,
                input_model_dirpath : str,
                output_metric_dirpath : str,
                test_loader : Dataset,
                names : list,
-               metrics : list):
+               metrics : list,
+               models_metrics : dict):
     
     try:
-        print(smp_input_file, flush=True)
+
+        checkpointpth_path = os.path.join(input_model_dirpath, "checkpoint.pth")
+        checkpoint = torch.load(checkpointpth_path)
         
-        smp_input_path = os.path.join(smp_inputs_path, smp_input_file)
-        plot_path = os.path.join(smp_input_path, "Logs.jpg")
-        model_path = os.path.join(smp_input_path, "model.pth")
-        config_path = os.path.join(smp_input_path, "config.json")
-        ERROR_path = os.path.join(smp_input_path, "ERROR")
+        # using checkpoint.pth is more reliable than model.pth
+        model = MODELS[checkpoint["model_name"]](encoder_name=checkpoint["encoder_variant"],
+                                                 encoder_weights=checkpoint["encoder_weights"],
+                                                 in_channels=1,
+                                                 activation="sigmoid")
+        model.load_state_dict(checkpoint["model_state_dict"])
+        model.to(tor_device)
+        logger.debug(f"Done Loading the Model")
 
-        smp_output_path = os.path.join(smp_outputs_path, smp_input_file)
-        if not os.path.exists(smp_output_path):
-            os.mkdir(smp_output_path)
+        test_loader_metrics = {metrics[metric].__name__: {} for metric in metrics}
         
-        starttime = time.time()  
-        if os.path.exists(model_path) and os.path.exists(config_path):
+        num_testing = torch.tensor(len(test_loader)).to(tor_device).float()
+        
+        start_time = time.time()
+        for (img_arr, gt_arr), name in zip(test_loader, names):
             
-            model = torch.load(model_path,map_location=device)
-            
-            configObj     = open(config_path, 'r')
-            configDict    = json.load(configObj)
+            xtensor = torch.from_numpy(img_arr).to(tor_device).unsqueeze(0)
+            ytensor = torch.from_numpy(gt_arr).to(tor_device).unsqueeze(0)
 
-            metric_outputs = {}
-            best_metric_outputs  = {}
-            worst_metric_outputs = {}      
+            pr_mask = model.predict(xtensor)
+            pr_mask[pr_mask >= .50] = 1
+            pr_mask[pr_mask < .50] = 0 
+
             for metric in metrics:
-                metric_outputs[metric.__name__] = {'model': smp_input_file, 'metric': metric.__name__, 'avg': torch.tensor(0).to(device).float(), 'maxi': torch.tensor(0), 'mini': torch.tensor(1), 
-                                                    'stddev' : torch.tensor(0), 'all': example_names.copy(), 'time_allmetrics': 0}
-                best_metric_outputs[metric.__name__] = {}
-                worst_metric_outputs[metric.__name__] = {}
-            
-            i = 0
-            for test in test_loader:
-                test0 = test[0]
-                test1 = test[1]
-                xtensor = torch.from_numpy(test0).to(device).unsqueeze(0)
-                ytensor = torch.from_numpy(test1).to(device).unsqueeze(0)
-                ztensor = torch.from_numpy(test_loader_vis[i][0]).to(device).unsqueeze(0)
-                pr_mask = model.predict(xtensor)
-                pr_mask[pr_mask >= .50] = 1
-                pr_mask[pr_mask < .50] = 0 
-
-                for metric in metrics:
-                    try:
-                        metric_value = (METRICS[metric.__name__].forward(self=metric, y_pr=pr_mask, y_gt=ytensor))
-                    except:
-                        metric_value = (LOSSES[metric.__name__].forward(self=metric, y_pred=pr_mask, y_true=ytensor))
-                    
-                    metric_outputs[metric.__name__]['avg'] += torch.divide(metric_value, test_loader_len)
-                    metric_outputs[metric.__name__]['all'][example_names_list[i]] = metric_value.item()
-                    metric_outputs[metric.__name__]['mini'] = torch.minimum(metric_value, metric_outputs[metric.__name__]['mini'])
-                    metric_outputs[metric.__name__]['maxi'] = torch.maximum(metric_value, metric_outputs[metric.__name__]['maxi'])
+                metric_name = metrics[metric].__name__
+                if metric_name in METRICS:
+                    metric_value = (METRICS[metric_name].forward(self=metrics[metric], y_pr=pr_mask, y_gt=ytensor))
+                else:
+                    metric_value = (LOSSES[metric_name].forward(self=metrics[metric], y_pred=pr_mask, y_true=ytensor))
                 
-                i += 1 
-            
-            metric_names = [metric.__name__ for metric in metrics]
-            metric_values = [metric_outputs[metric]['avg'].item() for metric in metric_names]
-
-            totaltime = time.time()-starttime
-            model_times[smp_input_file] = totaltime
-            
-            for metric in metrics:
-                # getPlots(best_metric_outputs[metric.__name__], metric_name=metric.__name__, smp_output_path, type="best", fig=fig, ax=ax)
-                # getPlots(worst_metric_outputs[metric.__name__], metric_name=metric.__name__, smp_output_path, type="worst", fig=fig, ax=ax)
-                metric_outputs[metric.__name__]['stddev'] = np.std(list(metric_outputs[metric.__name__]['all'].values()))
-                metric_outputs[metric.__name__]['avg'] = metric_outputs[metric.__name__]['avg'].item()
-                metric_outputs[metric.__name__]['mini'] = metric_outputs[metric.__name__]['mini'].item()
-                metric_outputs[metric.__name__]['maxi'] = metric_outputs[metric.__name__]['maxi'].item()
-                metric_outputs[metric.__name__]['all']  = {k: v for k, v in sorted(metric_outputs[metric.__name__]['all'].items(), 
-                                                                        key=lambda item: item[1])}
-                metric_outputs[metric.__name__]['time_allmetrics'] = totaltime
+                test_loader_metrics[metric_name][name] = metric_value.item()
                 
-                avg_model_metric_comparison[metric.__name__][smp_input_file] = metric_outputs[metric.__name__]['avg']
-                std_model_metric_comparison[metric.__name__][smp_input_file] = metric_outputs[metric.__name__]['stddev']
-                metrics_json = os.path.join(smp_output_path, f"metrics_{metric.__name__}.json")
-                with open(metrics_json, 'w') as metric_json:
-                    json.dump(metric_outputs[metric.__name__], metric_json, indent=4)
+        total_time = time.time() - start_time
+        logger.debug(f"Done Iterating throgh the testing images - time took {total_time} seconds")
+        
+        model_name = os.path.basename(input_model_dirpath)
+        models_metrics["time"][model_name] = total_time
+        
+        for metric in metrics:
+            
+            metric_name = metrics[metric].__name__
+            
+            test_loader_metric = test_loader_metrics[metric_name]
+            test_loader_metric = {k:v for k,v in sorted(test_loader_metric.items(), key=lambda item:item[1])}
+            
+            test_loader_metric_values = list(test_loader_metric.values())
+            
+            metric_summary = {"model" : model_name,
+                              "metric" : metric_name,
+                              "average" : np.average(test_loader_metric_values),
+                              "standard_deviation" : np.std(test_loader_metric_values),
+                              "maximum" : np.max(test_loader_metric_values),
+                              "minimum" : np.min(test_loader_metric_values),
+                              "time" : total_time}
+            logger.debug(f"\n{metric_summary}")
+            
+            models_metrics[metric][model_name] = f"{metric_summary['average']} - {metric_summary['standard_deviation']}"
+            
+            metric_summary["testing_images"] = test_loader_metric
+            
+            metrics_json_path = os.path.join(output_metric_dirpath, f"{metric_name}.json")
+            with open(metrics_json_path, 'w') as metric_json_file:
+                json.dump(metric_summary, metric_json_file, indent=4)
+            logger.debug(f"Saved to {metrics_json_path}")
 
-            print("TOTAL TIME: ", totaltime, flush=True)
-            print(" ")
-    except:
-        print(f"{smp_input_file} threw error")
+        return 0
+
+    except Exception as e:
+        logger.info(f"ERROR: {e}")
+        
     finally:
-        QUEUE.put(device)
+        QUEUE.put(tor_device)
         
 def main():
     
@@ -168,6 +164,9 @@ def main():
     logger.info(f"Input Models Directory : {input_models_dirpath}")
     logger.info(f"Output Predictions Directory : {output_metrics_dirpath}")
     
+    if not os.path.exists(output_metrics_dirpath):
+        raise ValueError(f"Output Directory ({output_metrics_dirpath}) does not exist")
+    
     images_testing_dirpath = args.imagesTestDir
     labels_testing_dirpath = args.labelsTestDir
     logger.info(f"Testing Images Directory : {images_testing_dirpath}")
@@ -179,7 +178,7 @@ def main():
     logger.info(f"\nQueuing up {NUM_GPUS} GPUs ...")
     for gpu_ids in (range(NUM_GPUS)):
         logger.debug(f"queuing device {gpu_ids} - {torch.cuda.get_device_name(gpu_ids)}")
-        QUEUE.put(torch.cuda.device(gpu_ids))
+        QUEUE.put(torch.device(f"cuda:{gpu_ids}"))
     
     logger.info("\nGetting Loaders ...")
     test_loader, _, _, names = getLoader(images_Dir=images_testing_dirpath,
@@ -194,14 +193,14 @@ def main():
     logger.info(f"\nIterating through {num_models} models ...")
     logger.info(f"Each model will be generating {num_examples} predictions")
     
-    metrics = list(metric() for metric in METRICS.values())
-    avg_model_metric_comparison = {metric.__name__ : {} for metric in metrics}
-    std_model_metric_comparison = {metric.__name__ : {} for metric in metrics}
-    model_times                 = {}
+    metrics = {metric.__name__ : metric() for metric in METRICS.values()}
+    
+    models_metrics = {metric.__name__ : {} for metric in METRICS.values()}
+    models_metrics["time"] = {}
     
     with ThreadPoolExecutor(max_workers=NUM_GPUS+(NUM_GPUS/2)) as executor:
         
-        for curr_smp_model in input_models_list:
+        for curr_smp_model in input_models_list[0:5]:
             
             counter += 1
             logger.info(f"\n{counter}. {curr_smp_model}")
@@ -225,12 +224,16 @@ def main():
             if not os.path.exists(configjson_path):
                 logger.debug(f"Not Running ({counter}/{num_models}) - config.json does not exist {input_model_dirpath}")
                 continue
-            with open(configjson_path) as json_file:
-                config_dict = json.load(json_file)
-                loss = config_dict['lossName']
-                metric_loss = LOSSES[loss]()
-                metric_loss.__name__ = loss
-                metrics.append(metric_loss)
+            
+            json_file = open(configjson_path, 'r')
+            config_dict = json.load(json_file)
+            
+            loss = config_dict['lossName']
+            metric_loss = LOSSES[loss]()
+            metric_loss.__name__ = loss
+            if metric_loss.__name__ not in metrics:
+                metrics[metric_loss.__name__] = metric_loss
+                models_metrics[metric_loss.__name__] = {}
         
             sleeping_in = 0
             while QUEUE.empty():
@@ -238,27 +241,23 @@ def main():
                 time.sleep(30)
                 logger.debug(f"There are currently no available GPUS to use - sleeping in x{sleeping_in}")
             
+            if not os.path.exists(output_metrics_dirpath):
+                os.mkdir(output_metrics_dirpath)
+            
             if not os.path.exists(output_metric_dirpath):
                 os.mkdir(output_metric_dirpath)
             
             if not QUEUE.empty():
-                executor.submit(evaluation, QUEUE.get(), input_model_dirpath, output_metric_dirpath, test_loader, names, metrics)
+                executor.submit(evaluation, QUEUE.get(), input_model_dirpath, output_metric_dirpath, test_loader, names, metrics, models_metrics)
 
-        # executor.map(forloop, smp_inputs_list, repeat(smp_inputs_path), repeat(smp_outputs_path), gpu_list)
-
+    logger.info(f"Summarizing Metrics across all the Models")
+    for models_metric in models_metrics:
         
-    for metric in metrics:    
-        model_json_metric_path = os.path.join(smp_outputs_path, metric.__name__ + "_models.json")
-        avg_model_metric_comparison[metric.__name__] = {k: str(v) + "-" + str(std_model_metric_comparison[metric.__name__][k]) for k, v in sorted(avg_model_metric_comparison[metric.__name__].items(), 
-                                                                        key=lambda item: item[1])}
-        print(avg_model_metric_comparison[metric.__name__])
-        with open(model_json_metric_path, 'w') as config_file:
-            json.dump(avg_model_metric_comparison[metric.__name__], config_file, indent=4)
-    model_json_time_path = os.path.join(smp_outputs_path, "time_models.json")
-    model_times = {k: v for k, v in sorted(model_times.items(), 
-                                            key=lambda item: item[1])}
-
-    with open(model_json_time_path, 'w') as time_file:
-        json.dump(model_times, time_file, indent=4)
+        models_metric_output_path = os.path.join(output_metrics_dirpath, f"{models_metric}.json")
+        models_metric_dict = models_metrics[models_metric]
+        
+        with open(models_metric_output_path, 'w') as models_metric_output_json_file:
+            json.dump(models_metric_dict, models_metric_output_json_file, indent=4)
+    
 
 main()
