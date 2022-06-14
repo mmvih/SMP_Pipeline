@@ -49,7 +49,6 @@ python3 writeCsv.py --csvFile models.csv
 ```#!/bin/sh
 mkdir Models
 python3 inputScript.py \
---mainFile "./polus-plugins/segmentation/polus-smp-training-plugin/src/main.py \
 --outputModels ./Models \
 --csvFile models.csv \
 --imagesTrainDir ./Data/nuclear/train/image \
