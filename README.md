@@ -28,9 +28,9 @@ pip install git+https://github.com/qubvel/segmentation_models.pytorch@c48c906bc2
 git clone https://github.com/PolusAI/polus-plugins.git
 ```
 The following plugins are used; make sure these plugins are available to use:
-1. polus-smp-training-plugin
-2. polus-pixelwise-evaluation-plugin
-3. polus-cellular-evaluation-plugin
+1. polus-plugins/segmentation/**polus-smp-training-plugin**
+2. polus-plugins/features/**polus-pixelwise-evaluation-plugin**
+3. polus-plugins/features/**polus-cellular-evaluation-plugin**
 
 Can clone branch with all the plugins merged
 ```#!/bin/sh
