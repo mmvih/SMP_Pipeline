@@ -21,32 +21,44 @@ def main():
     logger.info("Parsing arguments...")
     parser = argparse.ArgumentParser(prog='main', description='Segmentation models training plugin')
 
-    parser.add_argument('--outputModels', dest='outputModels', type=str, required=True, \
+    parser.add_argument('--inputModels', dest='inputModels', type=str, required=True,
+                        help='Path to Input Models Directory')
+    parser.add_argument('--outputLosses', dest='outputLosses', type=str, required=True, \
                         help='Path to Output Directory')
     
     args = parser.parse_args()
-    output_models_dirpath = args.outputModels
+    input_models_dirpath  = args.inputModels
+    output_losses_dirpath = args.outputLosses
+
+    if not os.path.exists(output_losses_dirpath):
+        raise ValueError(f"Output Directory ({output_losses_dirpath}) does not exist")
     
-    output_models_list = os.listdir(output_models_dirpath)
-    num_models = len(output_models_list)
+    logger.info(f"Input Models Directory : {input_models_dirpath}")
+    logger.info(f"Output Models Directory : {output_losses_dirpath}")
     
-    logger.info(f"Output Models Directory : {output_models_dirpath}")
+    input_models_list = os.listdir(input_models_dirpath)
+    num_models = len(input_models_list)
+    
     
     counter = 0
     fig, axes = plt.subplots(2, 3, figsize=(15,12))
     fig.tight_layout(pad=3)
     logger.info(f"Iterating through {num_models} models ...")
-    for curr_smp_model in output_models_list:
+    for curr_smp_model in input_models_list:
         
         counter += 1
         logger.info(f"\n{counter}. {curr_smp_model}")
         
-        output_model_dirpath = os.path.join(output_models_dirpath, curr_smp_model)
-        if not os.path.exists(output_models_dirpath):
+        input_model_dirpath = os.path.join(input_models_dirpath, curr_smp_model)
+        if not os.path.exists(input_model_dirpath):
             logger.debug(f"Not Running ({counter}/{num_models}) - input Model directory does not exist ({output_model_dirpath})")
         
-        trainlogscsv_path = os.path.join(output_model_dirpath, "trainlogs.csv")
-        validlogscsv_path = os.path.join(output_model_dirpath, "validlogs.csv")
+        output_loss_dirpath = os.path.join(output_losses_dirpath, curr_smp_model)
+        if not os.path.exists(output_loss_dirpath):
+            os.mkdir(output_loss_dirpath)
+        
+        trainlogscsv_path = os.path.join(input_model_dirpath, "trainlogs.csv")
+        validlogscsv_path = os.path.join(input_model_dirpath, "validlogs.csv")
         
         if not os.path.exists(trainlogscsv_path):
             logger.debug(f"Not Running ({counter}/{num_models}) - {trainlogscsv_path} does not exist")
@@ -91,12 +103,14 @@ def main():
     
             ax.legend(["Training", "Validation"])
         
-        output_logpng_path = os.path.join(output_model_dirpath, "epochLogs.png")
+        output_logpng_path = os.path.join(output_loss_dirpath, "epochLogs.png")
         plt.savefig(output_logpng_path)
-        logger.debug(f"Saved Output Plots to {output_logpng_path}")
+        logger.debug(f"Saved Output Plots to {output_logpng_path}") #override any existing plots
+        logger.debug(f"analyzed {counter}/{num_models} models")
         
         for ax in axes.flat:
             ax.clear()
+            
     logger.info("Done Iterating through all {num_models} models!")
                 
             
