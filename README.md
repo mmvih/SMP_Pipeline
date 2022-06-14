@@ -41,7 +41,7 @@ git clone --branch smp_Pipeline https://github.com/mmvih/polus-plugins.git
 ## Create CSV File for all the Models
 
 ```#!/bin/sh
-python3 write_csv.py --csvFile models.csv
+python3 writeCsv.py --csvFile models.csv
 ```
 
 ## Train all the Nuclear Models
