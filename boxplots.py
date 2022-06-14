@@ -32,8 +32,6 @@ def append_to_dataframe(eval_dirpath, curr_smp_metric, metrics):
     for column in result_df_columns:
         if column == "Image_Name":
             continue
-        if column == "Class":
-            continue
         if column not in metrics:
             metrics[column] = {curr_smp_metric : list(result_df[column])}
         else:
@@ -58,9 +56,6 @@ def create_boxplots(dataframe, output_directory, show_howmany, metrics):
     for columnName in dataframe.keys():
         
         if columnName == "Image_Name":
-            continue
-        
-        if columnName == "Class":
             continue
         
         column_filename = columnName.replace(" ", "_").replace("/","-")
