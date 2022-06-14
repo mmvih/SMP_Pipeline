@@ -91,7 +91,12 @@ pip install -r polus-plugins/transforms/images/polus-ftl-label-plugin/src/requir
 mkdir polus-plugins/transforms/images/polus-ftl-label-plugin/ftl_rust/src
 cd polus-plugins/transforms/images/polus-ftl-label-plugin/
 python rust_setup.py install
-cd -
+cd src
+mkdir src/
+python setup.py build_ext --inplace
+mv src/ftl.cpython-39-x86_64-linux-gnu.so .
+rm -rf src/
+cd ../../../../../
 ```
 
 ```#!/bin/sh
@@ -123,7 +128,7 @@ python3 metricEvaluation.py \
 ```#!/bin/sh
 python3 smpEvaluation.py \
 --inputModels ./ModelsOutputs \
---outputMetrics ./ModelsOutput \
+--outputMetrics .odelsOutput \
 --imagesTestDir ./Data/nuclear/test/image \
 --labelsTestDir ./Data/nuclear/test/groundtruth_centerbinary_2pixelsmaller \
 ```
@@ -135,5 +140,3 @@ python boxPlots.py \
 --outputBoxplots ./ModelsOutputs
 
 ```
-
-
