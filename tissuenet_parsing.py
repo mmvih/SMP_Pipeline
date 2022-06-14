@@ -174,7 +174,6 @@ def save_file(npz_location, classofdata, typeofdata, npz_dir, output_dir, suffix
 
 def main():
 
-
     """ Argument parsing """
     logger.info("Parsing arguments...")
     parser = argparse.ArgumentParser(prog='main', description='Segmentation models training plugin')
