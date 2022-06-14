@@ -24,8 +24,18 @@ pip install -r requirements.txt
 pip install git+https://github.com/qubvel/segmentation_models.pytorch@c48c906bc2ee238f45aedf413e9248c37f088894
 ```
 
-
+```#!/bin/sh
 git clone https://github.com/PolusAI/polus-plugins.git
+```
+The following plugins are used, make sure these plugins are available to use:
+1. polus-smp-training-plugin
+2. polus-pixelwise-evaluation-plugin
+3. polus-cellular-evaluation-plugin
+
+Can clone branch with all the plugins merged 
+```#!/bin/sh
+git clone --branch smp_Pipeline https://github.com/mmvih/polus-plugins.git
+```
 
 
 ## Create CSV File for all the Models
