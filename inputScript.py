@@ -55,7 +55,7 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
 
         process_env = os.environ.copy()
         process_env["CUDA_VISIBLE_DEVICES"] = gpu_id
-        python_command =  f"time python {os.path.join(polus_smp_dir, segmentation/polus-smp-training-plugin/src/main.py)}" + \
+        python_command =  f"time python {os.path.join(polus_smp_dir, "src/main.py")}" + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
