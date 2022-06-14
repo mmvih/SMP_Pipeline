@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 import os, sys
 import shutil
 
@@ -40,49 +39,6 @@ logger.setLevel("INFO")
 NUM_GPUS = torch.cuda.device_count()
 QUEUE = Queue()
 encodervariant_dictionary = {variant:base for base in ENCODERS for variant in ENCODERS[base]}
-
-def create_plots(outputdirectory, traincsv, validcsv):
-    
-    score_dictionary = {}
-    with open(traincsv, 'r') as train:
-        with open(validcsv, 'r') as valid:
-            for t_line, v_line in zip(train, valid):
-                split_t = t_line.rstrip("\n").split(",")
-                split_v = v_line.rstrip("\n").split(",")
-                for scores_t, scores_v in zip(split_t, split_v):
-                    Train_name, Train_value = scores_t.split(":")
-                    Valid_name, Valid_value = scores_v.split(":")
-                    Train_name = Train_name.strip()
-                    Valid_name = Valid_name.strip()
-                    assert Train_name == Valid_name
-                    
-                    if Train_name in score_dictionary:
-                        score_dictionary[Train_name][0].append(float(Train_value))
-                        score_dictionary[Valid_name][1].append(float(Valid_value))
-                    else:
-                        score_dictionary[Train_name] = \
-                            [[float(Train_value)], [float(Valid_value)]]
-
-    score_keys = score_dictionary.keys()
-    fig, ax = plt.subplots(2, 3, figsize=(15,12))
-    fig.tight_layout(pad=3)
-    i = 0
-    j = 0
-    fig.suptitle(os.path.basename(outputdirectory))
-    for score_name in score_dictionary.keys():
-        ax[i,j].set_ylim([0,1])
-        ax[i,j].set_xlabel("EPOCHS")
-        ax[i,j].set_ylabel(score_name)
-        ax[i,j].plot(score_dictionary[score_name][0], label="Train")
-        ax[i,j].plot(score_dictionary[score_name][1], label="Validation")
-        i = i + 1
-        if i == 2:
-            i = 0
-            j = j + 1
-    handles, labels = ax[0,0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper right')
-    plt.savefig(os.path.join(outputdirectory, f"Logs.jpg"))
-    plt.clf()
 
 def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
     ident = current_process().ident
@@ -165,7 +121,6 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
     finally:
         QUEUE.put(gpu_id)
 
-track_changes = True
 def main():
 
     """ Argument parsing """
@@ -206,12 +161,12 @@ def main():
     logger.info(f"Labels Validation Directory : {labels_validation_dirpath}")
     logger.info(f"Output Models Directory : {output_models_dirpath}")
     
-    input_kwargs = {"output_workdir" : args.outputModels,
-                    "python_main"    : args.mainFile,
-                    "imagesTrainDir" : args.imagesTrainDir,
-                    "labelsTrainDir" : args.labelsTrainDir,
-                    "imagesValidDir" : args.imagesValidDir,
-                    "labelsValidDir" : args.labelsValidDir}
+    input_kwargs = {"output_workdir" : output_models_dirpath,
+                    "python_main"    : main_file_path,
+                    "imagesTrainDir" : images_training_dirpath,
+                    "labelsTrainDir" : labels_training_dirpath,
+                    "imagesValidDir" : images_validation_dirpath,
+                    "labelsValidDir" : labels_validation_dirpath}
 
     logger.info(f"\nOpening CSV file")
     csv_file = open(csv_path)
