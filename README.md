@@ -13,7 +13,11 @@ python3 tissuenet_parsing.py --npzDir ./tissuenet_1.0 --outputDir ./Data
 ## Set up the Environment and Clone polus-plugins
 
 ```#!/bin/sh
+wget https://repo.continuum.io/archive/Anaconda3-2018.12-Linux-x86_64.sh
+bash Anaconda3-2018.12-Linux-x86_64.sh -b -p
+source ~/anaconda/bin/activate
 git clone https://github.com/PolusAI/polus-plugins.git
+pip install -r requirements.txt
 ```
 
 ## Create CSV File for all the Models
