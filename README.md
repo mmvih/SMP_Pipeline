@@ -27,12 +27,12 @@ pip install git+https://github.com/qubvel/segmentation_models.pytorch@c48c906bc2
 ```#!/bin/sh
 git clone https://github.com/PolusAI/polus-plugins.git
 ```
-The following plugins are used, make sure these plugins are available to use:
+The following plugins are used; make sure these plugins are available to use:
 1. polus-smp-training-plugin
 2. polus-pixelwise-evaluation-plugin
 3. polus-cellular-evaluation-plugin
 
-Can clone branch with all the plugins merged 
+Can clone branch with all the plugins merged
 ```#!/bin/sh
 git clone --branch smp_Pipeline https://github.com/mmvih/polus-plugins.git
 ```
@@ -48,7 +48,7 @@ python3 write_csv.py --csvFile models.csv
 
 ```#!/bin/sh
 mkdir Models
-python3 input_script.py \
+python3 inputScript.py \
 --mainFile "./polus-plugins/segmentation/polus-smp-training-plugin/src/main.py \
 --outputModels ./Models \
 --csvFile models.csv \
@@ -61,7 +61,7 @@ python3 input_script.py \
 ## Create Images of the Loss Plots
 
 ```#!/bin/sh
-python3 input_script.py \
+python3 lossPlots.py \
 --inputModels ./Models
 --outputLosses ./Models
 ```
@@ -69,7 +69,7 @@ python3 input_script.py \
 ## Use Trained Models to save Predictions
 ```#!/bin/sh
 mkdir ModelsOutput
-python3 input_script.py \
+python3 savePredictions.py \
 --inputModels ./Models \
 --outputPredictions ./ModelsOutput \
 --imagesTestDir ./Data/nuclear/test/image \
