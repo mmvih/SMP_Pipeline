@@ -66,7 +66,7 @@ python3 lossPlots.py \
 --outputLosses ./Models
 ```
 
-## Use Trained Models to save Predictions
+## Use Trained Models to Save Predictions
 ```#!/bin/sh
 mkdir ModelsOutput
 python3 savePredictions.py \
