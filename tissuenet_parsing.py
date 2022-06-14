@@ -1,22 +1,21 @@
-import copy
-import os
+import os, copy
+import logging, argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
+
 from skimage import morphology
 from skimage import segmentation
 
 import bfio
 from bfio import BioWriter
 
-suffix = "ome.tif"
-base_dir = "/home/vihanimm/Data/tissuenet"
-NPZ_DIR = f"{base_dir}/npz"
-OUTPUT_DIR = f"{base_dir}/ometif_data/"
-if not os.path.isdir(OUTPUT_DIR):
-    raise ValueError("Output Directory ({}) does not exist; please create manually".format(OUTPUT_DIR))
-
+logging.basicConfig(
+    format='%(asctime)s - %(name)-8s - %(levelname)-8s - %(message)s',
+    datefmt='%d-%b-%y %H:%M:%S'
+)
+logger = logging.getLogger("ftl")
+logger.setLevel("DEBUG")
 
 def convert_to_boundarymaps(groundtruth_boundary_array):
     anno = morphology.label(groundtruth_boundary_array)
@@ -37,7 +36,6 @@ def convert_to_boundarymaps(groundtruth_boundary_array):
     # erode away the center
     gt_cntrbnry_2pxlerro_arr = np.zeros(anno.shape) 
     gt_cntrbnry_2pxlerro_arr[label_binary[:, :, 1] == 1] = 1  # center values are set to 1
-    # gt_cntrbnry_2pxlerro_arr = morphology.binary_erosion(gt_cntrbnry_2pxlerro_arr)
     # print("NUMBER OF 1s in EROSION: ", np.sum(gt_cntrbnry_2pxlerro_arr))
 
 
@@ -56,18 +54,17 @@ def convert_to_boundarymaps(groundtruth_boundary_array):
     # only the center of the cyst is defined with a pixel value of 1
     gt_cntrbnry_3pxlerro_arr = np.zeros(anno.shape)
     gt_cntrbnry_3pxlerro_arr[groundtruth_multiclass_array == 2] = 1
-    # print("NUMBER OF 1s in Border Dilation: ", np.sum(gt_cntrbnry_3pxlerro_arr))
 
     return groundtruth_multiclass_array, groundtruth_borderbinary_array, gt_cntrbnry_3pxlerro_arr, gt_cntrbnry_2pxlerro_arr
 
 
-def save_file(npz_location, classofdata, typeofdata):
+def save_file(npz_location, classofdata, typeofdata, npz_dir, output_dir, suffix):
     # mapping out all the outputs
-    diction = np.load(os.path.join(NPZ_DIR, npz_location))
+    diction = np.load(os.path.join(npz_dir, npz_location))
     X, y = diction['X'], diction['y']
     tissue_list, platform_list = diction['tissue_list'], diction['platform_list']
 
-    class_directory = os.path.join(OUTPUT_DIR, classofdata)
+    class_directory = os.path.join(output_dir, classofdata)
     if not os.path.isdir(class_directory):
         os.mkdir(class_directory)
 
@@ -170,18 +167,44 @@ def save_file(npz_location, classofdata, typeofdata):
 
             fig.suptitle("Example Plot for {}'s Data ({})".format(classofdata, typeofdata))
             plot_name = "{}_{}.jpg".format(classofdata, typeofdata)
-            plt.savefig(os.path.join(OUTPUT_DIR, plot_name))
+            plt.savefig(os.path.join(output_dir, plot_name))
 
-        print("Saved {}'s {} data ({}/{})".format(classofdata, typeofdata, ex, num_examples - 1))
-    print("Saved all of {}'s {} data".format(classofdata, typeofdata))
-    print(" ")
+        logger.info("Saved {}'s {} data ({}/{})".format(classofdata, typeofdata, ex, num_examples - 1))
+    logger.info("Saved all of {}'s {} data".format(classofdata, typeofdata))
+
+def main():
 
 
-# run the functions for different parameters
-save_file(os.path.join(NPZ_DIR, "tissuenet_v1.0_test.npz"), "nuclear", "test")
-save_file(os.path.join(NPZ_DIR, "tissuenet_v1.0_train.npz"), "nuclear", "train")
-save_file(os.path.join(NPZ_DIR, "tissuenet_v1.0_val.npz"), "nuclear", "validation")
+    """ Argument parsing """
+    logger.info("Parsing arguments...")
+    parser = argparse.ArgumentParser(prog='main', description='Segmentation models training plugin')
 
-save_file(os.path.join(NPZ_DIR, "tissuenet_v1.0_test.npz"), "cell", "test")
-save_file(os.path.join(NPZ_DIR, "tissuenet_v1.0_train.npz"), "cell", "train")
-save_file(os.path.join(NPZ_DIR, "tissuenet_v1.0_val.npz"), "cell", "validation")
+    parser.add_argument('--npzDir', dest='npzDir', type=str, required=True, \
+                        help='Path to Directory containing Input Predictions for all Models')
+    parser.add_argument('--outputDir', dest='outputDir', type=str, required=True,
+                        help='Path to Groundtruth Directory that match the inputPredictions')
+    parser.add_argument('--suffix', dest='suffix', type=str, required=True,
+                        help='Path to where the Output Labels will be saved')
+
+    args = parser.parse_args()
+    npz_dir = args.npzDir
+    output_dir = args.outputDir
+    suffix = args.suffix
+
+    logger.info(f"NPZ Directory : {npz_dir}")
+    logger.info(f"Output Tissuenet Directory : {output_dir}")
+    logger.info(f"Suffix : {suffix}")
+
+    if not os.path.isdir(output_dir):
+        raise ValueError("Output Directory ({}) does not exist; please create manually".format(output_dir))
+
+    # run the functions for different parameters
+    save_file(os.path.join(npz_dir, "tissuenet_v1.0_test.npz"), "nuclear", "test",  npz_dir, output_dir, suffix)
+    save_file(os.path.join(npz_dir, "tissuenet_v1.0_train.npz"), "nuclear", "train",  npz_dir, output_dir, suffix)
+    save_file(os.path.join(npz_dir, "tissuenet_v1.0_val.npz"), "nuclear", "validation",  npz_dir, output_dir, suffix)
+
+    save_file(os.path.join(npz_dir, "tissuenet_v1.0_test.npz"), "cell", "test",  npz_dir, output_dir, suffix)
+    save_file(os.path.join(npz_dir, "tissuenet_v1.0_train.npz"), "cell", "train",  npz_dir, output_dir, suffix)
+    save_file(os.path.join(npz_dir, "tissuenet_v1.0_val.npz"), "cell", "validation",  npz_dir, output_dir, suffix)
+
+main()
