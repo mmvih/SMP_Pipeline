@@ -81,15 +81,17 @@ We need to use python3.9 to use the polus-ftl-label-plugin
 ```#!/bin/sh
 conda create --name py39 -y python=3.9
 conda activate py39
+
 pip install --upgrade cython==3.0.0a9
 curl https://sh.rustup.rs -sSf | bash -s -- -y
 PATH="~/.cargo/bin:${PATH}"
+
 pip install -r polus-plugins/transforms/images/polus-ftl-label-plugin/rust_requirements.txt
 pip install -r polus-plugins/transforms/images/polus-ftl-label-plugin/src/requirements.txt
-sudo yum -y update
-sudo yum install -y build-essential curl
 mkdir polus-plugins/transforms/images/polus-ftl-label-plugin/ftl_rust/src
+cd polus-plugins/transforms/images/polus-ftl-label-plugin/
 python polus-plugins/transforms/images/polus-ftl-label-plugin/rust_setup.py install
+cd -
 ```
 
 ```#!/bin/sh
