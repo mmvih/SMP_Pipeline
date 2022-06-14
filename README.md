@@ -90,7 +90,7 @@ pip install -r polus-plugins/transforms/images/polus-ftl-label-plugin/rust_requi
 pip install -r polus-plugins/transforms/images/polus-ftl-label-plugin/src/requirements.txt
 mkdir polus-plugins/transforms/images/polus-ftl-label-plugin/ftl_rust/src
 cd polus-plugins/transforms/images/polus-ftl-label-plugin/
-python polus-plugins/transforms/images/polus-ftl-label-plugin/rust_setup.py install
+python rust_setup.py install
 cd -
 ```
 
