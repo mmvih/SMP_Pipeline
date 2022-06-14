@@ -5,11 +5,12 @@ Uses the Segmentation Model Toolkit to train Multiple Models
 Tissuenet's NPZ directory can be downloaded from https://datasets.deepcell.org/data
 
 ```#!/bin/sh
+unzip tissuenet_v1.0.zip.download
 mkdir Data
 python3 tissuenet_parsing.py --npzDir ./tissuenet_1.0 --outputDir ./Data
 ```
 
-## Clone polus-plugins
+## Set up the Environment and Clone polus-plugins
 
 ```#!/bin/sh
 git clone https://github.com/PolusAI/polus-plugins.git
