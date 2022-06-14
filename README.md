@@ -16,9 +16,17 @@ python3 tissuenet_parsing.py --npzDir ./tissuenet_1.0 --outputDir ./Data
 wget https://repo.continuum.io/archive/Anaconda3-2018.12-Linux-x86_64.sh
 bash Anaconda3-2018.12-Linux-x86_64.sh -b -p
 source ~/anaconda/bin/activate
-git clone https://github.com/PolusAI/polus-plugins.git
-pip install -r requirements.txt
 ```
+
+```#!/bin/sh
+python -m pip install -U pip
+pip install -r requirements.txt
+pip install git+https://github.com/qubvel/segmentation_models.pytorch@c48c906bc2ee238f45aedf413e9248c37f088894
+```
+
+
+git clone https://github.com/PolusAI/polus-plugins.git
+
 
 ## Create CSV File for all the Models
 
