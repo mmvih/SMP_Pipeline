@@ -55,7 +55,7 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
 
         process_env = os.environ.copy()
         process_env["CUDA_VISIBLE_DEVICES"] = gpu_id
-        python_command =  f"time python " + kwargs["python_main"] + \
+        python_command =  f"time python {os.path.join(polus_smp_dir, segmentation/polus-smp-training-plugin/src/main.py)}" + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
@@ -129,8 +129,6 @@ def main():
 
     parser.add_argument('--csvFile', dest='csvFile', type=str, required=True, \
                         help='Path to csv File')
-    parser.add_argument('--mainFile', dest='mainFile', type=str, required=True, \
-                        help='Path to Training SMP file')
     parser.add_argument('--imagesTrainDir', dest='imagesTrainDir', type=str, required=True, \
                         help='Path to Images that are Trained')
     parser.add_argument('--labelsTrainDir', dest='labelsTrainDir', type=str, required=True, \
@@ -162,7 +160,6 @@ def main():
     logger.info(f"Output Models Directory : {output_models_dirpath}")
     
     input_kwargs = {"output_workdir" : output_models_dirpath,
-                    "python_main"    : main_file_path,
                     "imagesTrainDir" : images_training_dirpath,
                     "labelsTrainDir" : labels_training_dirpath,
                     "imagesValidDir" : images_validation_dirpath,
