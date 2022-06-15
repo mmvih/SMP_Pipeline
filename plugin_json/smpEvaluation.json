@@ -13,7 +13,7 @@
   
       {
         "name": "inputModels",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Input Models",
         "required": true
       },
@@ -35,7 +35,7 @@
     "outputs": [
       {
         "name": "outputMetrics",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Directories of Output Metrics"
       }
     ],
@@ -62,4 +62,4 @@
       }
     ]
   }
-  
+ 
