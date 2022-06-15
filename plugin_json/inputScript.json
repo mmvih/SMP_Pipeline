@@ -1,0 +1,88 @@
+{
+  "name": "SMP Pipeline - Input Script",
+  "version": "0.0.0",
+  "title": "Input Models",
+  "description": "Trains the models with the parameters specified in the Input CSV file",
+  "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
+  "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
+  "repository": "https://github.com/mmvih/SMP_Pipeline/",
+  "website": "https://ncats.nih.gov/preclinical/core/informatics",
+  "citation": "",
+  "containerId": "N/A",
+  "inputs": [
+
+    {
+      "name": "csvFile",
+      "type": "csvCollection",
+      "description": "Input CSV file containing model parameters compatible with polus-smp-training-plugin",
+      "required": true
+    },
+    {
+      "name": "imagesTrainDir",
+      "description": "Training Image Dataset",
+      "type": "collection",
+      "options": null,
+      "required": true
+    },
+    {
+      "name": "labelsTrainDir",
+      "description": "Training Label Dataset",
+      "type": "collection",
+      "options": null,
+      "required": true
+    },
+    {
+      "name": "imagesValidDir",
+      "description": "Validation Image Dataset",
+      "type": "collection",
+      "options": null,
+      "required": true
+    },
+    {
+      "name": "labelsValidDir",
+      "description": "Validation Label Dataset",
+      "type": "collection",
+      "options": null,
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "name": "outputModels",
+      "type": "genericData",
+      "description": "Directories of Model Data"
+    }
+  ],
+  "ui": [
+    {
+      "key": "inputs.csvFile",
+      "title": "Input CSV collection: ",
+      "description": "Collection name..."
+    },
+    {
+      "key": "inputs.imagesTrainDir",
+      "title": "Training Image Dataset: ",
+      "description": "Training Image Dataset name ..."
+    },
+    {
+      "key": "inputs.labelsTrainDir",
+      "title": "Training Label Dataset: ",
+      "description": "Training Label Dataset name ..."
+    },
+    {
+      "key": "inputs.imagesValidDir",
+      "title": "Validation Image Dataset: ",
+      "description": "Validation Image Dataset name ..."
+    },
+    {
+      "key": "inputs.labelsTrainDir",
+      "title": "Validation Label Dataset:",
+      "description": "Validation Label Dataset name ..."
+    },
+    {
+      "key": "outputs.outputModels",
+      "title": "Output Models: ",
+      "description" : "Directories of Output Models name ..."
+    }
+  ]
+}
