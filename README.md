@@ -142,6 +142,7 @@ python metricSummary.py \
 --evaluationMetric PixelEvaluation
 --outputCSVs ./ModelsPixelOutput
 ```
+The outputs for this can be used to generate Graph Pyramids
 
 ## Create Summary for the Cell Evaluation Metrics
 ```#!/bin/sh
@@ -150,6 +151,7 @@ python metricSummary.py \
 --evaluationMetric CellEvaluation
 --outputCSVs ./ModelsCellOutput
 ```
+The outputs for this can be used to generate Graph Pyramids
 
 ## Create BoxPlots for Cell Evaluations
 ```#!/bin/sh
