@@ -1,5 +1,6 @@
 # SMP_Pipeline
 Uses the Segmentation Model Toolkit to train Multiple Models
+Can visualize an overview of the workflow at https://wipp-ui.ci.aws.labshare.org/wipp/workflows/detail/62aa2d1b2550ca495c29b145
 
 ## Get the Data in Working Directory
 Tissuenet's NPZ directory can be downloaded from https://datasets.deepcell.org/data
