@@ -1,8 +1,8 @@
 {
-    "name": "SMP Pipeline - Save Predictions",
+    "name": "SMP Pipeline - SMP Evaluation",
     "version": "0.0.0",
-    "title": "Save Predictions",
-    "description": "Creates Binary Predictions from the Models Trained",
+    "title": "SMP Evaluation",
+    "description": "Uses the metrics in the polus-smp-training-plugin to generate metrics",
     "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
     "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
     "repository": "https://github.com/mmvih/SMP_Pipeline/",
@@ -10,6 +10,7 @@
     "citation": "",
     "containerId": "N/A",
     "inputs": [
+  
       {
         "name": "inputModels",
         "type": "genericDataCollection",
@@ -32,16 +33,16 @@
       }
     ],
     "outputs": [
-        {
-            "name": "outputPredictions",
-            "type": "genericDataCollection",
-            "description": "Directories of Binary Predictions"
-        }
+      {
+        "name": "outputMetrics",
+        "type": "genericDataCollection",
+        "description": "Directories of Output Metrics"
+      }
     ],
     "ui": [
       {
         "key": "inputs.inputModels",
-        "title": "Input Binary Predictions: ",
+        "title": "Input Predictions: ",
         "description": "Collection name..."
       },
       {
@@ -55,10 +56,9 @@
         "description": "Collection name ..."
       },
       {
-        "key": "outputs.outputPredictions",
-        "title": "Output Predictions: ",
-        "description" : "Directories of Output Predictions name ..."
+        "key": "outputs.outputMetrics",
+        "title": "Output Labels: ",
+        "description" : "Directories of Output Labels name ..."
       }
     ]
   }
-  
