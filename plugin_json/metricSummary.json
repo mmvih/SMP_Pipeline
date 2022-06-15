@@ -1,0 +1,57 @@
+{
+    "name": "SMP Pipeline - Metric Summary",
+    "version": "0.0.0",
+    "title": "Metric Summary",
+    "description": "Generates a Summary of the metrics evaluated from the models trained",
+    "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
+    "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
+    "repository": "https://github.com/mmvih/SMP_Pipeline/",
+    "website": "https://ncats.nih.gov/preclinical/core/informatics",
+    "citation": "",
+    "containerId": "N/A",
+    "inputs": [
+      {
+        "name": "inputMetrics",
+        "type": "genericData",
+        "description": "Input Evaluation Metrics",
+        "required": true
+      },
+      {
+        "name": "evaluationMetric",
+        "type": "enum",
+        "options": {
+            "values": [
+                "PixelEvaluation",
+                "CellularEvaluation"
+            ]
+        },
+        "description": "The type of evaluation to run",
+        "required": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outputCSVs",
+        "type": "csvCollection",
+        "description": "CSV of average and standard deviation of input metrics"
+      }
+    ],
+    "ui": [
+      {
+        "key": "inputs.inputMetrics",
+        "title": "Input Metrics: ",
+        "description": "Input Metrics Directory name..."
+      },
+      {
+        "key": "inputs.evaluationMetric",
+        "title": "Input Evaluation Metric: ",
+        "description": "Pixel Evaluation (binary) or Cellular Evaluation (multilabel)"
+      },
+      {
+        "key": "outputs.outputCSVs",
+        "title": "Output CSVs: ",
+        "description" : "Directory containing CSVs name ..."
+      }
+    ]
+  }
+  

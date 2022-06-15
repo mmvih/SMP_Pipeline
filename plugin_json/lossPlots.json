@@ -1,0 +1,40 @@
+{
+    "name": "SMP Pipeline - Loss Plots",
+    "version": "0.0.0",
+    "title": "Loss Plots",
+    "description": "Generates images of Losses for all the Models trained",
+    "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
+    "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
+    "repository": "https://github.com/mmvih/SMP_Pipeline/",
+    "website": "https://ncats.nih.gov/preclinical/core/informatics",
+    "citation": "",
+    "containerId": "N/A",
+    "inputs": [  
+      {
+        "name": "inputModels",
+        "type": "genericData",
+        "description": "Input Models",
+        "required": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outputLosses",
+        "type": "collection",
+        "description": "Images of the Losses"
+      }
+    ],
+    "ui": [
+      {
+        "key": "inputs.inputModels",
+        "title": "Input Models: ",
+        "description": "Input Models name..."
+      },
+      {
+        "key": "outputs.outputLosses",
+        "title": "Output Losses: ",
+        "description" : "Directories of Output Losses name ..."
+      }
+    ]
+  }
+  

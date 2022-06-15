@@ -1,0 +1,67 @@
+{
+    "name": "SMP Pipeline - Box Plots",
+    "version": "0.0.0",
+    "title": "Box Plots",
+    "description": "Generates Box Plots for all the Models Evaluated",
+    "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
+    "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
+    "repository": "https://github.com/mmvih/SMP_Pipeline/",
+    "website": "https://ncats.nih.gov/preclinical/core/informatics",
+    "citation": "",
+    "containerId": "N/A",
+    "inputs": [
+      {
+        "name": "inputMetrics",
+        "type": "genericData",
+        "description": "Input Evaluation Metrics",
+        "required": true
+      },
+      {
+        "name": "inputCSVs",
+        "type": "csvCollection",
+        "description": "Input CSV Summary",
+        "required": true
+      },
+      {
+        "name": "evaluationMetric",
+        "type": "enum",
+        "options": {
+            "values": [
+                "PixelEvaluation",
+                "CellularEvaluation"
+            ]
+        },
+        "description": "The type of evaluation to run",
+        "required": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outputBoxplots",
+        "type": "collection",
+        "description": "Images of the Boxplots"
+      }
+    ],
+    "ui": [
+      {
+        "key": "inputs.inputMetrics",
+        "title": "Input Metrics: ",
+        "description": "Input Metrics Directory name..."
+      },
+      {
+        "key": "inputs.inputCSVs",
+        "title": "Directory containing the input CSVs name ..."
+      },
+      {
+        "key": "inputs.evaluationMetric",
+        "title": "Input Evaluation Metric: ",
+        "description": "Pixel Evaluation (binary) or Cellular Evaluation (multilabel)"
+      },
+      {
+        "key": "outputs.outputBoxplots",
+        "title": "Output Directory containing the boxplots: ",
+        "description" : "Directories containing the boxplots ..."
+      }
+    ]
+  }
+  

@@ -1,0 +1,64 @@
+{
+    "name": "SMP Pipeline - Save Predictions",
+    "version": "0.0.0",
+    "title": "Save Predictions",
+    "description": "Creates Predictions from the Models Trained",
+    "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
+    "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
+    "repository": "https://github.com/mmvih/SMP_Pipeline/",
+    "website": "https://ncats.nih.gov/preclinical/core/informatics",
+    "citation": "",
+    "containerId": "N/A",
+    "inputs": [
+      {
+        "name": "inputModels",
+        "type": "genericData",
+        "description": "Input Models",
+        "required": true
+      },
+      {
+        "name": "imagesTestDir",
+        "description": "Images Test Directory",
+        "type": "collection",
+        "options": null,
+        "required": true
+      },
+      {
+        "name": "labelsTestDir",
+        "description": "Labels Test Directory",
+        "type": "collection",
+        "options": null,
+        "required": true
+      }
+    ],
+    "outputs": [
+        {
+            "name": "outputPredictions",
+            "type": "genericData",
+            "description": "Directories of Binary Predictions"
+        }
+    ],
+    "ui": [
+      {
+        "key": "inputs.inputPredictions",
+        "title": "Input Binary Predictions: ",
+        "description": "Collection name..."
+      },
+      {
+        "key": "inputs.imagesTestDir",
+        "title": "Input Images Testing Directory: ",
+        "description": "Collection name ..."
+      },
+      {
+        "key": "inputs.labelsTestDir",
+        "title": "Input Labels Testing Directory: ",
+        "description": "Collection name ..."
+      },
+      {
+        "key": "outputs.outputPredictions",
+        "title": "Output Predictions: ",
+        "description" : "Directories of Output Predictions name ..."
+      }
+    ]
+  }
+  

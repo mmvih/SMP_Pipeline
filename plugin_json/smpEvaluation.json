@@ -1,0 +1,65 @@
+{
+    "name": "SMP Pipeline - SMP Evaluation",
+    "version": "0.0.0",
+    "title": "SMP Evaluation",
+    "description": "Uses the metrics in the polus-smp-training-plugin to generate metrics",
+    "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
+    "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
+    "repository": "https://github.com/mmvih/SMP_Pipeline/",
+    "website": "https://ncats.nih.gov/preclinical/core/informatics",
+    "citation": "",
+    "containerId": "N/A",
+    "inputs": [
+  
+      {
+        "name": "inputModels",
+        "type": "genericData",
+        "description": "Input Models",
+        "required": true
+      },
+      {
+        "name": "imagesTestDir",
+        "description": "Images Test Directory",
+        "type": "collection",
+        "options": null,
+        "required": true
+      },
+      {
+        "name": "labelsTestDir",
+        "description": "Labels Test Directory",
+        "type": "collection",
+        "options": null,
+        "required": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outputMetrics",
+        "type": "genericData",
+        "description": "Directories of Output Metrics"
+      }
+    ],
+    "ui": [
+      {
+        "key": "inputs.inputPredictions",
+        "title": "Input Predictions: ",
+        "description": "Collection name..."
+      },
+      {
+        "key": "inputs.imagesTestDir",
+        "title": "Input Images Testing Directory: ",
+        "description": "Collection name ..."
+      },
+      {
+        "key": "inputs.labelsTestDir",
+        "title": "Input Labels Testing Directory: ",
+        "description": "Collection name ..."
+      },
+      {
+        "key": "outputs.outputMetrics",
+        "title": "Output Labels: ",
+        "description" : "Directories of Output Labels name ..."
+      }
+    ]
+  }
+  

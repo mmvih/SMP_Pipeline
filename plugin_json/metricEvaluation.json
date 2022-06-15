@@ -1,0 +1,70 @@
+{
+    "name": "SMP Pipeline - Metric Evaluation",
+    "version": "0.0.0",
+    "title": "Metric Evaluation",
+    "description": "Generate Metric Evaluations for the Binary/MultiLabel Predictions",
+    "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
+    "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
+    "repository": "https://github.com/mmvih/SMP_Pipeline/",
+    "website": "https://ncats.nih.gov/preclinical/core/informatics",
+    "citation": "",
+    "containerId": "N/A",
+    "inputs": [
+  
+      {
+        "name": "inputPredictions",
+        "type": "genericData",
+        "description": "Input Predictions",
+        "required": true
+      },
+      {
+        "name": "inputGroundtruth",
+        "description": "Groundtruth directory the output will be compared to",
+        "type": "collection",
+        "options": null,
+        "required": true
+      },
+      {
+        "name": "evaluationMetric",
+        "type": "enum",
+        "options": {
+            "values": [
+                "PixelEvaluation",
+                "CellularEvaluation"
+            ]
+        },
+        "description": "The type of evaluation to run",
+        "required": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outputMetrics",
+        "type": "genericData",
+        "description": "Directories of Output Metrics"
+      }
+    ],
+    "ui": [
+      {
+        "key": "inputs.inputPredictions",
+        "title": "Input Predictions: ",
+        "description": "Collection name..."
+      },
+      {
+        "key": "inputs.inputGroundtruth",
+        "title": "Input Groundtruth: ",
+        "description": "Comparing the output to ..."
+      },
+      {
+        "key": "inputs.evaluationMetric",
+        "title": "Input Evaluation Metric: ",
+        "description": "Pixel Evaluation (binary) or Cellular Evaluation (multilabel)"
+      },
+      {
+        "key": "outputs.outputMetrics",
+        "title": "Output Metrics: ",
+        "description" : "Directories of Output Labels name ..."
+      }
+    ]
+  }
+  
