@@ -24,6 +24,7 @@ python -m pip install -U pip
 pip install -r requirements.txt
 pip install git+https://github.com/qubvel/segmentation_models.pytorch@c48c906bc2ee238f45aedf413e9248c37f088894
 ```
+Newer releases of the segmentation-model-pytorch does not work with MCCLoss
 
 ```#!/bin/sh
 git clone https://github.com/PolusAI/polus-plugins.git
