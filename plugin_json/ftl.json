@@ -13,7 +13,7 @@
   
       {
         "name": "inputPredictions",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Input binary predictions to convert to multilabel predictions",
         "required": true
       },
@@ -28,7 +28,7 @@
     "outputs": [
       {
         "name": "outputLabels",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Directories of Output Labels"
       }
     ],
@@ -39,7 +39,7 @@
         "description": "Collection name..."
       },
       {
-        "key": "inputs.inputGroudntruth",
+        "key": "inputs.inputGroundtruth",
         "title": "Input Groundtruth: ",
         "description": "Comparing the output to ..."
       },

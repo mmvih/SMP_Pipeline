@@ -1,20 +1,20 @@
 {
   "name": "SMP Pipeline - Input Script",
   "version": "0.0.0",
-  "title": "Input Models",
-  "description": "Trains the models with the parameters specified in the Input CSV file",
+  "containerId": "N/A",
+  "title": "Input Script",
+  "description": "Trains all the models with parameters specified in the input CSV file",
   "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
   "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
   "repository": "https://github.com/mmvih/SMP_Pipeline/",
   "website": "https://ncats.nih.gov/preclinical/core/informatics",
   "citation": "",
-  "containerId": "N/A",
   "inputs": [
-
     {
       "name": "csvFile",
-      "type": "csvCollection",
       "description": "Input CSV file containing model parameters compatible with polus-smp-training-plugin",
+      "type": "csvCollection",
+      "options": null,
       "required": true
     },
     {
@@ -49,8 +49,10 @@
   "outputs": [
     {
       "name": "outputModels",
-      "type": "genericData",
-      "description": "Directories of Model Data"
+      "description": "Directories of Model Data",
+      "type": "genericDataCollection",
+      "options": null,
+      "required": true
     }
   ],
   "ui": [
@@ -75,14 +77,14 @@
       "description": "Validation Image Dataset name ..."
     },
     {
-      "key": "inputs.labelsTrainDir",
-      "title": "Validation Label Dataset:",
+      "key": "inputs.labelsValidDir",
+      "title": "Validation Label Dataset: ",
       "description": "Validation Label Dataset name ..."
     },
     {
       "key": "outputs.outputModels",
       "title": "Output Models: ",
-      "description" : "Directories of Output Models name ..."
+      "description": "Directories of Output Models name ..."
     }
   ]
 }

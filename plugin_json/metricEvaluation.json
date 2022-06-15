@@ -13,7 +13,7 @@
   
       {
         "name": "inputPredictions",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Input Predictions",
         "required": true
       },
@@ -40,7 +40,7 @@
     "outputs": [
       {
         "name": "outputMetrics",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Directories of Output Metrics"
       }
     ],

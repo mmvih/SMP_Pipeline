@@ -12,7 +12,7 @@
     "inputs": [
       {
         "name": "inputMetrics",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Input Evaluation Metrics",
         "required": true
       },

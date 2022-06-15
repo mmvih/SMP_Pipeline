@@ -2,7 +2,7 @@
     "name": "SMP Pipeline - Save Predictions",
     "version": "0.0.0",
     "title": "Save Predictions",
-    "description": "Creates Predictions from the Models Trained",
+    "description": "Creates Binary Predictions from the Models Trained",
     "author": "Madhuri Vihani (Madhuri.Vihani@nih.gov), Hythem Sidky (Hythem.Sidky@nih.gov)",
     "institution": "National Center for the Advancing Translational Sciences, National Institutes of Health",
     "repository": "https://github.com/mmvih/SMP_Pipeline/",
@@ -12,7 +12,7 @@
     "inputs": [
       {
         "name": "inputModels",
-        "type": "genericData",
+        "type": "genericDataCollection",
         "description": "Input Models",
         "required": true
       },
@@ -34,13 +34,13 @@
     "outputs": [
         {
             "name": "outputPredictions",
-            "type": "genericData",
+            "type": "genericDataCollection",
             "description": "Directories of Binary Predictions"
         }
     ],
     "ui": [
       {
-        "key": "inputs.inputPredictions",
+        "key": "inputs.inputModels",
         "title": "Input Binary Predictions: ",
         "description": "Collection name..."
       },
