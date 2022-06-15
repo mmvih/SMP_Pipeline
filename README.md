@@ -109,7 +109,7 @@ python3 ftl.py \
 --inputGroundtruth ./Data/nuclear/test/groundtruth
 ```
 
-## Run Pixel Evaluation 
+## Run Pixel & Cellular Evaluation 
 ```#!/bin/sh
 mkdir ModelsPixelOutput
 python3 metricEvaluation.py \
@@ -117,10 +117,7 @@ python3 metricEvaluation.py \
 --outputMetrics ./ModelsPixelOutput \
 --inputGroundtruth ./Data/nuclear/test/groundtruth_centerbinary_2pixelsmaller \
 --evaluationMetric "PixelEvaluation" \
-```
 
-## Run Cellular Evaluation 
-```#!/bin/sh
 mkdir ModelsCellOutput
 python3 metricEvaluation.py \
 --inputPredictions ./ModelsOutputs \
@@ -138,17 +135,13 @@ python3 smpEvaluation.py \
 --labelsTestDir ./Data/nuclear/test/groundtruth_centerbinary_2pixelsmaller \
 ```
 
-## Create Summary for the Pixel Evaluation Metrics
+## Create Summary for the Pixel & Cellular Evaluation Metrics
 ```#!/bin/sh
 python metricSummary.py \
 --inputMetrics ./ModelsPixelOutputs \
 --evaluationMetric PixelEvaluation
 --outputCSVs ./ModelsPixelOutput
-```
-The outputs for this can be used to generate Graph Pyramids
 
-## Create Summary for the Cell Evaluation Metrics
-```#!/bin/sh
 python metricSummary.py \
 --inputMetrics ./ModelsCellOutputs \
 --evaluationMetric CellEvaluation
@@ -156,21 +149,17 @@ python metricSummary.py \
 ```
 The outputs for this can be used to generate Graph Pyramids
 
-## Create BoxPlots for Cell Evaluations
+## Create BoxPlots for Pixel & Cellular Evaluations
 ```#!/bin/sh
 python boxPlots.py \
 --inputMetrics ./ModelsPixelOutputs \
 --inputCSVs ./ModelsPixelOutput
 --evaluationMetric PixelEvaluation
 --outputBoxplots ./ModelsPixelOutputs
-```
 
-## Create BoxPlots for Cell Evaluations
-```#!/bin/sh
 python boxPlots.py \
 --inputMetrics ./ModelsCellOutputs \
 --inputCSVs ./ModelsCellOutput
 --evaluationMetric CellEvaluation
 --outputBoxplots ./ModelsCellOutputs
 ```
-
