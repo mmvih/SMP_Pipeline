@@ -1,3 +1,4 @@
+from ast import Continue
 import os, sys, json
 import logging, argparse
 
@@ -16,40 +17,6 @@ logging.basicConfig(
 logger = logging.getLogger("savepredictions")
 logger.setLevel("DEBUG")
 
-def append_to_dataframe(eval_dirpath, curr_smp_metric, metrics):
-    
-    total_stats_result_path = os.path.join(eval_dirpath, "total_stats_result.csv")
-    logger.debug(f"Total Stats Path : {os.path.abspath(total_stats_result_path)}")
-    if not os.path.exists(total_stats_result_path):
-        return 0, 0, 0
-        
-    result_path = os.path.join(eval_dirpath, "result.csv")
-    logger.debug(f"Result Path : {os.path.abspath(result_path)}")
-    
-    result_df = pd.read_csv(result_path)
-    
-    result_df_columns = result_df.columns
-    for column in result_df_columns:
-        if column == "Image_Name":
-            continue
-        if column not in metrics:
-            metrics[column] = {curr_smp_metric : list(result_df[column])}
-        else:
-            metrics[column][curr_smp_metric] = list(result_df[column])
-    
-    result_df_avg = result_df[0:1249].mean()
-    result_df_std = result_df[0:1249].std()
-    
-    result_df.loc[f'{curr_smp_metric}_mean'] = result_df_avg
-    result_df.loc[f'{curr_smp_metric}_std']  = result_df_std
-    
-    result_df_avg = result_df_avg.rename(curr_smp_metric)
-    result_df_std = result_df_std.rename(curr_smp_metric)
-            
-    result_df['Image_Name'] = result_df.index
-    result_df = result_df.loc[[f'{curr_smp_metric}_mean', f'{curr_smp_metric}_std']]
-        
-    return result_df, result_df_avg, result_df_std
 
 def create_boxplots(dataframe, output_directory, show_howmany, metrics):
     
@@ -65,30 +32,22 @@ def create_boxplots(dataframe, output_directory, show_howmany, metrics):
             continue
         
         column_filename = columnName.replace(" ", "_").replace("/","-")
-        model_data = dataframe[[columnName, "Image_Name"]]
+        model_data = dataframe[[columnName]]
         
-        # split up the _mean and _std into two separate dataframes
-        model_data_avg = model_data[model_data["Image_Name"].str.contains("_mean") == True]
-        model_data_std = model_data[model_data["Image_Name"].str.contains("_std")  == True]
-        
-        # rename Models so that it does not end with _mean or _std
-        model_data_avg["Image_Name"] = model_data_avg["Image_Name"].str[:-5]
-        model_data_std["Image_Name"] = model_data_std["Image_Name"].str[:-4]
-        
-        model_data_merged = pd.merge(model_data_avg, model_data_std, on="Image_Name")
-        model_data_merged = model_data_merged.sort_values(by=[columnName+"_x"], ignore_index=True)
+        model_data_sorted = model_data.sort_values(by=[columnName])
 
         randgraph_idx = np.sort(np.random.randint(show_howmany+1, 
-                                len(model_data_avg)-show_howmany+1, 
+                                len(model_data)-show_howmany+1, 
                                 show_howmany).astype('int'))
-    
-        lowest_models  = list(model_data_merged["Image_Name"].iloc[0:show_howmany])
-        middle_models  = list(model_data_merged["Image_Name"].iloc[randgraph_idx])
-        highest_models = list(model_data_merged["Image_Name"].iloc[-show_howmany:])
+
+        lowest_models  = list(model_data_sorted.iloc[0:show_howmany].index)
+        middle_models  = list(model_data_sorted.iloc[randgraph_idx].index)
+        highest_models = list(model_data_sorted.iloc[-show_howmany:].index)
         
+
         lowest_models_values  = [metrics[columnName][lowest_model] for lowest_model in lowest_models]
-        highest_models_values = [metrics[columnName][lowest_model] for lowest_model in highest_models]
-        middle_models_values  = [metrics[columnName][lowest_model] for lowest_model in middle_models]
+        highest_models_values = [metrics[columnName][highest_model] for highest_model in highest_models]
+        middle_models_values  = [metrics[columnName][middle_model] for middle_model in middle_models]
     
 
         box = plt.boxplot(lowest_models_values+middle_models_values+highest_models_values, 
@@ -101,11 +60,12 @@ def create_boxplots(dataframe, output_directory, show_howmany, metrics):
         plt.title(f"{columnName} - Evaluation")
         plt.legend(handles = [lightgreen_patch, lightblue_patch, pink_patch])
         plt.tight_layout()
+        
         output_boxplot_path = os.path.join(output_directory, f"{column_filename}.png")
         plt.savefig(output_boxplot_path)
         logger.debug(f"Saved Boxplot - {output_boxplot_path}")
         
-        plt.close()
+        plt.cla()
 
 def main():
     
@@ -115,100 +75,79 @@ def main():
 
     parser.add_argument('--inputMetrics', dest='inputMetrics', type=str, required=True,
                 help='Path to Input Metrics')
+    parser.add_argument('--inputCSVs', dest='inputCSVs', type=str, required=True,
+                help='Path to the Input CSVs Summary generated from Metric Evaluation')
+    parser.add_argument('--evaluationMetric', dest='evaluationMetric', type=str, required=True,
+                help='Input Metric Pixel Evaluation or Cellular Evaluation?')
     parser.add_argument('--outputBoxplots', dest='outputBoxplots', type=str, required=True,
                 help='Path to Output Boxplots')
     
     args = parser.parse_args()
     input_metrics_dirpath = args.inputMetrics
+    input_CSVs_dirpath    = args.inputCSVs
     output_boxplots_dirpath = args.outputBoxplots
+    evaluation_metric = args.evaluationMetric
     
     if not os.path.exists(output_boxplots_dirpath):
         raise ValueError(f"Output Directory ({output_boxplots_dirpath}) does not exist")
     
     logger.info(f"Input Metrics Directory : {input_metrics_dirpath}")
     logger.info(f"Output Boxplots Directory : {output_boxplots_dirpath}")
+    logger.info(f"Evaluation Metric : {evaluation_metric}")
     
     input_metrics_list = os.listdir(input_metrics_dirpath)
     num_models = len(input_metrics_list)
     
+    input_CSVs_avg_path = os.path.join(input_CSVs_dirpath, "avg.csv")
+    input_CSVs_df = pd.read_csv(input_CSVs_avg_path, index_col=0)
+    num_models = len(input_CSVs_df)
+
+    if evaluation_metric == "PixelEvaluation":
+        eval_name = "pixeleval"
+    else:
+        eval_name = "celleval"
+        
+    metrics = {metric : {} for metric in input_CSVs_df.columns}
+
     show_howmany = min(num_models//3, 50)
-    
-    # intialize data for summarizing
-    pixel_metrics_dataframe = pd.DataFrame()
-    cell_metrics_dataframe  = pd.DataFrame()
-    pixel_metrics = {}
-    cell_metrics = {}
     
     logger.info(f"\nIterating through {num_models} models ... ")
     logger.info(f"Will be concatenating information from {num_models} models " + \
                     f"to show the top {show_howmany}, middle {show_howmany}, " + \
                         f"and bottom {show_howmany} models")
 
-    pixel_metrics_dataframe_avg = pd.DataFrame()
-    pixel_metrics_dataframe_std = pd.DataFrame()
-    
-    cell_metrics_dataframe_avg = pd.DataFrame()
-    cell_metrics_dataframe_std = pd.DataFrame()
-    
     counter = 0
     for curr_smp_metric in input_metrics_list:
         
         counter += 1
-        logger.info(f"\n{counter}. {curr_smp_metric}")
+        logger.info(f"\n{counter}/{num_models}. {curr_smp_metric}")
+        
+        if curr_smp_metric not in input_CSVs_df.index:
+            logger.debug(f"Not Including {curr_smp_metric} - Not in the Dataset")
+            continue
         
         input_metric_dirpath = os.path.join(input_metrics_dirpath, curr_smp_metric)
         logger.debug(f"Input Metric Path : {input_metric_dirpath}")
         
-        pixeleval_dirpath = os.path.join(input_metric_dirpath, "pixeleval")
-        celleval_dirpath  = os.path.join(input_metric_dirpath, "celleval")
+        eval_dirpath = os.path.join(input_metric_dirpath, eval_name)
         
-        pixel_metric_dataframe, pixel_metric_dataframe_avg, pixel_metric_dataframe_std = \
-            append_to_dataframe(pixeleval_dirpath, curr_smp_metric, pixel_metrics)
-        cell_metric_dataframe, cell_metric_dataframe_avg, cell_metric_dataframe_std = \
-            append_to_dataframe(celleval_dirpath, curr_smp_metric, cell_metrics)
+        total_stats_result_path = os.path.join(eval_dirpath, "total_stats_result.csv")
+        if not os.path.exists(total_stats_result_path):
+            logger.debug(f"Not Including {curr_smp_metric} - Total Stats Results was NOT made")
+            continue
+        logger.debug(f"Total Stats Path : {os.path.abspath(total_stats_result_path)}")
+        
+        result_path = os.path.join(eval_dirpath, "result.csv")
+        logger.debug(f"Result Path : getting data from {os.path.abspath(result_path)}")
+    
+        result_df = pd.read_csv(result_path)
 
-        if not isinstance(pixel_metric_dataframe, int):
-            pixel_metrics_dataframe = pixel_metrics_dataframe.append(pixel_metric_dataframe, ignore_index=True)
-            pixel_metrics_dataframe_avg = pixel_metrics_dataframe_avg.append(pixel_metric_dataframe_avg)
-            pixel_metrics_dataframe_std = pixel_metrics_dataframe_std.append(pixel_metric_dataframe_std)
+        for column in result_df.columns:
+            if column == "Image_Name":
+                continue
+            metrics[column][curr_smp_metric] = list(result_df[column])
         
-        if not isinstance(cell_metric_dataframe, int):
-            cell_metrics_dataframe  = cell_metrics_dataframe.append(cell_metric_dataframe, ignore_index=True)
-            cell_metrics_dataframe_avg = cell_metrics_dataframe_avg.append(cell_metric_dataframe_avg)
-            cell_metrics_dataframe_std = cell_metrics_dataframe_std.append(cell_metric_dataframe_std)
-
-    # new column names for the pixel and cell dataframes so that they can be combined and saved
-    newpixel_columnNames = {column : f"{column}_pixel" for column in pixel_metrics_dataframe_avg.columns}
-    newcell_columnNames = {column : f"{column}_cell" for column in cell_metrics_dataframe_std.columns}
-
-    # saving the average data
-    pixel_metrics_dataframe_avg.to_csv(os.path.join(output_boxplots_dirpath, "pixels_avg.csv"), index=True)
-    cell_metrics_dataframe_avg.to_csv(os.path.join(output_boxplots_dirpath, "cells_avg.csv"), index=True)
-    pd.concat([pixel_metrics_dataframe_avg.rename(columns=newpixel_columnNames), 
-               cell_metrics_dataframe_avg.rename(columns=newcell_columnNames)],
-               axis=1).to_csv(os.path.join(output_boxplots_dirpath, "combined_avg.csv"), index=True)
-    
-    # saving the standard deviation data
-    pixel_metrics_dataframe_std.to_csv(os.path.join(output_boxplots_dirpath, "pixels_std.csv"), index=True)
-    cell_metrics_dataframe_std.to_csv(os.path.join(output_boxplots_dirpath, "cells_std.csv"), index=True)
-    pd.concat([pixel_metrics_dataframe_std.rename(columns=newpixel_columnNames), 
-               cell_metrics_dataframe_std.rename(columns=newcell_columnNames)],
-               axis=1).to_csv(os.path.join(output_boxplots_dirpath, "combined_std.csv"), index=True)
-    
-    output_pixel_boxplot_dirpath = os.path.join(output_boxplots_dirpath, "pixel_boxplots")
-    output_cell_boxplot_dirpath  = os.path.join(output_boxplots_dirpath, "cell_boxplots")
-    
-    if not os.path.exists(output_pixel_boxplot_dirpath):
-        os.mkdir(output_pixel_boxplot_dirpath)
-        
-    if not os.path.exists(output_cell_boxplot_dirpath):
-        os.mkdir(output_cell_boxplot_dirpath)
-        
-    logger.debug(f"Output Pixel Boxplot Directory : {output_pixel_boxplot_dirpath}")
-    logger.debug(f"Output Cell Boxplot Directory : {output_cell_boxplot_dirpath}")
-    
-    create_boxplots(pixel_metrics_dataframe, output_pixel_boxplot_dirpath, show_howmany, pixel_metrics)
-    create_boxplots(cell_metrics_dataframe, output_cell_boxplot_dirpath, show_howmany, cell_metrics)
+    create_boxplots(input_CSVs_df, output_boxplots_dirpath, show_howmany, metrics)
+    logger.info("Done Creating Boxplots!")
 
 main()
- 
