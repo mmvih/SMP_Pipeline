@@ -33,6 +33,7 @@ The following plugins are used; make sure these plugins are available to use:
 1. polus-plugins/segmentation/**polus-smp-training-plugin**
 2. polus-plugins/features/**polus-pixelwise-evaluation-plugin**
 3. polus-plugins/features/**polus-cellular-evaluation-plugin**
+4. polus-plugins/transforms/images/**polus-ftl-label-plugin/**
 
 Can clone branch with all the plugins merged
 ```#!/bin/sh
