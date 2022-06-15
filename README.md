@@ -106,37 +106,66 @@ python3 ftl.py \
 --inputGroundtruth ./Data/nuclear/test/groundtruth
 ```
 
-## Run Cellular Evaluation 
-```#!/bin/sh
-python3 metricEvaluation.py \
---inputPredictions ./ModelsOutputs \
---outputMetrics ./ModelsOutput \
---inputGroundtruth ./Data/nuclear/test/groundtruth \
---evaluationMetric "CellularEvaluation" \
-```
-
 ## Run Pixel Evaluation 
 ```#!/bin/sh
+mkdir ModelsPixelOutput
 python3 metricEvaluation.py \
 --inputPredictions ./ModelsOutputs \
---outputMetrics ./ModelsOutput \
+--outputMetrics ./ModelsPixelOutput \
 --inputGroundtruth ./Data/nuclear/test/groundtruth_centerbinary_2pixelsmaller \
 --evaluationMetric "PixelEvaluation" \
+```
+
+## Run Cellular Evaluation 
+```#!/bin/sh
+mkdir ModelsCellOutput
+python3 metricEvaluation.py \
+--inputPredictions ./ModelsOutputs \
+--outputMetrics ./ModelsCellOutput \
+--inputGroundtruth ./Data/nuclear/test/groundtruth \
+--evaluationMetric "CellularEvaluation" \
 ```
 
 ## Run SMP Evaluation (metrics in the SMP training module and time)
 ```#!/bin/sh
 python3 smpEvaluation.py \
 --inputModels ./ModelsOutputs \
---outputMetrics .odelsOutput \
+--outputMetrics ./ModelsOutput \
 --imagesTestDir ./Data/nuclear/test/image \
 --labelsTestDir ./Data/nuclear/test/groundtruth_centerbinary_2pixelsmaller \
 ```
 
-## Create BoxPlots and CSV files for Graph Pyramid Plugin
+## Create Summary for the Pixel Evaluation Metrics
+```#!/bin/sh
+python metricSummary.py \
+--inputMetrics ./ModelsPixelOutputs \
+--evaluationMetric PixelEvaluation
+--outputCSVs ./ModelsPixelOutput
+```
+
+## Create Summary for the Cell Evaluation Metrics
+```#!/bin/sh
+python metricSummary.py \
+--inputMetrics ./ModelsCellOutputs \
+--evaluationMetric CellEvaluation
+--outputCSVs ./ModelsCellOutput
+```
+
+## Create BoxPlots for Cell Evaluations
 ```#!/bin/sh
 python boxPlots.py \
---inputMetrics ./ModelsOutputs \
---outputBoxplots ./ModelsOutputs
-
+--inputMetrics ./ModelsPixelOutputs \
+--inputCSVs ./ModelsPixelOutput
+--evaluationMetric PixelEvaluation
+--outputBoxplots ./ModelsPixelOutputs
 ```
+
+## Create BoxPlots for Cell Evaluations
+```#!/bin/sh
+python boxPlots.py \
+--inputMetrics ./ModelsCellOutputs \
+--inputCSVs ./ModelsCellOutput
+--evaluationMetric CellEvaluation
+--outputBoxplots ./ModelsCellOutputs
+```
+
