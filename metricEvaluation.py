@@ -28,7 +28,7 @@ def evaluation(input_prediction_dirpath,
         logfile = open(logfile, 'w')
         python_arguments = f" --GTDir {input_groundtruth_dirpath}" + \
                            f" --inputClasses 1" + \
-                           f" --totalStats True" + \
+                           f" --totalStats true" + \
                            f" --outDir {output_evaluation_dirpath}"
         
         if evaluation_metric == "CellEvaluation":
@@ -36,14 +36,14 @@ def evaluation(input_prediction_dirpath,
             ftl_path = os.path.join(input_prediction_dirpath, "ftl")
             python_main = os.path.join(polus_dir, "features/polus-cellular-evaluation-plugin/src/main.py")
             python_command = f"python {python_main}" + python_arguments + \
-                                f" --totalSummary True" + \
+                                f" --totalSummary true" + \
                                 f" --PredDir {ftl_path}"
         else:
             logger.debug(f"PixelEvaluation")
             predictions_path = os.path.join(input_prediction_dirpath, "predictions")
             python_main = os.path.join(polus_dir, "features/polus-pixelwise-evaluation-plugin/src/main.py")
             python_command = f"python {python_main}" + python_arguments + \
-                                f" --individualStats False" + \
+                                f" --individualStats false" + \
                                 f" --PredDir {predictions_path}"
         
         subprocess.call(python_command, shell=True, stdout=logfile, stderr=logfile)
