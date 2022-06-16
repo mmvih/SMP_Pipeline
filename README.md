@@ -46,6 +46,7 @@ git clone --branch smp_Pipeline https://github.com/mmvih/polus-plugins.git
 ```#!/bin/sh
 python3 writeCsv.py --csvFile models.csv
 ```
+This creates a CSV file of all the different models that will be trained. It lists the different parameters of the models.
 
 ## Train all the Nuclear Models
 
@@ -67,6 +68,7 @@ python3 lossPlots.py \
 --inputModels ./Models
 --outputLosses ./Models
 ```
+This takes the trainlogs.csv and validationlogs.csv and converts them into a graph using matplotlib
 
 ## Use Trained Models to Save Predictions
 ```#!/bin/sh
@@ -77,6 +79,7 @@ python3 savePredictions.py \
 --imagesTestDir ./Data/nuclear/test/image \
 --labelsTestDir ./Data/nuclear/test/groundtruth_centerbinary_2pixelsmaller \
 ```
+This uses the models trained to save all the predictions from the testing dataset
 
 ## Generate Labels from Binary Predictions
 
@@ -108,6 +111,7 @@ python3 ftl.py \
 --outputLabels ./ModelsOutput \
 --inputGroundtruth ./Data/nuclear/test/groundtruth
 ```
+This code converts the binary predictions to instance labels by using polus-ftl-labeling-plugin
 
 ## Run Pixel & Cellular Evaluation 
 ```#!/bin/sh
@@ -125,6 +129,7 @@ python3 metricEvaluation.py \
 --inputGroundtruth ./Data/nuclear/test/groundtruth \
 --evaluationMetric "CellularEvaluation" \
 ```
+This runs the polus-cellular-evaluation and polus-pixelwise-evaluation on the labels and predictions generated, respectively. 
 
 ## Run SMP Evaluation (metrics in the SMP training module and time)
 ```#!/bin/sh
@@ -134,6 +139,8 @@ python3 smpEvaluation.py \
 --imagesTestDir ./Data/nuclear/test/image \
 --labelsTestDir ./Data/nuclear/test/groundtruth_centerbinary_2pixelsmaller \
 ```
+This code generates metrics defined by the segmentation-model-pytorch toolkit. 
+It also generates how long it takes the model to run predictions on the testing dataset.
 
 ## Create Summary for the Pixel & Cellular Evaluation Metrics
 ```#!/bin/sh
@@ -163,3 +170,4 @@ python boxPlots.py \
 --evaluationMetric CellEvaluation
 --outputBoxplots ./ModelsCellOutputs
 ```
+This creates jpeg images of boxplots and each model reported uses all the data from the testing dataset
