@@ -126,7 +126,7 @@ def main():
     logger.info(f"\nQueuing up {NUM_GPUS} GPUs ...")
     for gpu_ids in (range(NUM_GPUS)):
         logger.debug(f"queuing device {gpu_ids} - {torch.cuda.get_device_name(gpu_ids)}")
-        QUEUE.put(torch.cuda.device(gpu_ids))
+        QUEUE.put(torch.device(f"cuda:{gpu_ids}"))
 
     logger.info("\nGetting Loaders ...")
     test_loader, _, _, names = getLoader(images_Dir=images_testing_dirpath,
@@ -144,7 +144,7 @@ def main():
         for curr_smp_model in input_models_list:
             
             counter += 1
-            logger.info(f"\n{counter}. {curr_smp_model}")
+            logger.info(f"\n{counter}/{num_models}. {curr_smp_model}")
             
             # looking at only ONE input model and ONE output location
             input_model_dirpath = os.path.join(input_models_dirpath, curr_smp_model)
@@ -184,7 +184,6 @@ def main():
             if not QUEUE.empty():
                 executor.submit(evaluation, QUEUE.get(), input_model_dirpath, output_prediction_dirpath, test_loader, names)
             
-            logger.info(f"analyzed {counter}/{num_models} models")
         logger.info(f"DONE ANALYZING ALL MODELS!")
 
 
