@@ -153,7 +153,6 @@ def main():
                 logger.debug(f"{input_prediction_dirpath} isn't a directory!")
                 continue
             
-            
             output_prediction_dirpath = os.path.join(output_predictions_dirpath, curr_smp_model)
             logger.debug(f"Input Prediction Path : {input_model_dirpath}")
             logger.debug(f"Output Label Path : {output_prediction_dirpath}") 
