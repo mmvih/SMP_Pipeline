@@ -82,6 +82,11 @@ def main():
 
             # input and output path for the models
             input_prediction_dirpath  = os.path.join(input_predictions_dirpath, curr_smp_model)
+            
+            if not os.path.dirpath(input_prediction_dirpath):
+                logger.debug(f"{input_prediction_dirpath} isn't a directory!")
+                continue
+            
             output_label_dirpath = os.path.join(output_labels_dirpath, curr_smp_model)
             logger.debug(f"Input Predictions Path : {input_prediction_dirpath}")
             logger.debug(f"Output Labels Path : {output_label_dirpath}")
