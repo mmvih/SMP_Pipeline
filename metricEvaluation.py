@@ -31,18 +31,20 @@ def evaluation(input_prediction_dirpath,
                            f" --totalStats True" + \
                            f" --outDir {output_evaluation_dirpath}"
         
-        if evaluation_metric == "PixelEvaluation":
-            predictions_path = os.path.join(input_prediction_dirpath, "predictions")
+        if evaluation_metric == "CellEvaluation":
+            logger.debug(f"CellEvaluation")
+            ftl_path = os.path.join(input_prediction_dirpath, "ftl")
             python_main = os.path.join(polus_dir, "features/polus-cellular-evaluation-plugin/src/main.py")
             python_command = f"python {python_main}" + python_arguments + \
                                 f" --totalSummary True" + \
-                                f" --PredDir {predictions_path}"
+                                f" --PredDir {ftl_path}"
         else:
-            ftl_path = os.path.join(input_prediction_dirpath, "ftl")
+            logger.debug(f"PixelEvaluation")
+            predictions_path = os.path.join(input_prediction_dirpath, "predictions")
             python_main = os.path.join(polus_dir, "features/polus-pixelwise-evaluation-plugin/src/main.py")
             python_command = f"python {python_main}" + python_arguments + \
                                 f" --individualStats False" + \
-                                f" --PredDir {ftl_path}"
+                                f" --PredDir {predictions_path}"
         
         subprocess.call(python_command, shell=True, stdout=logfile, stderr=logfile)
         logger.debug(python_command)
@@ -95,7 +97,7 @@ def main():
     
     counter = 0
     logger.info(f"\nIterating through {num_models} models ...")
-    logger.info(f"Each model will be generating {num_examples} predictions")
+    logger.info(f"Each model will be generating {num_examples} metrics")
     with ThreadPoolExecutor(max_workers=os.cpu_count()-10) as executor:
         for curr_smp_model in input_predictions_list:
             
@@ -103,6 +105,11 @@ def main():
             logger.info(f"\n{counter}/{num_models}. {curr_smp_model}")
             
             input_prediction_dirpath = os.path.join(input_predictions_dirpath, curr_smp_model)
+            
+            if not os.path.isdir(input_prediction_dirpath):
+                logger.debug(f"This isn't a directory!")
+                continue
+            
             output_metric_dirpath = os.path.join(output_metrics_dirpath, curr_smp_model)
             logger.debug(f"Input Prediction Path : {input_prediction_dirpath}")
             logger.debug(f"Output Label Path : {output_metric_dirpath}")
