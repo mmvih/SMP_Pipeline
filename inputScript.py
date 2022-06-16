@@ -48,6 +48,7 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
         
         model_dirpath = os.path.join(kwargs["output_workdir"], model_dirname)
         modelpth_path = os.path.join(model_dirpath, "model.pth")
+        model_finalpth_path = os.path.join(model_dirpath, "model_final.pth")
         logpath = os.path.join(model_dirpath, "logs.log")
 
         num_arguments = len(headers)
@@ -55,7 +56,8 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
 
         process_env = os.environ.copy()
         process_env["CUDA_VISIBLE_DEVICES"] = gpu_id
-        python_command =  f"time python {os.path.join(polus_smp_dir, "src/main.py")}" + \
+        python_main = os.path.join(os.path.join(polus_smp_dir, "src"), "main.py")
+        python_command =  f"time python {python_main}" + \
                             f" --imagesTrainDir " + kwargs["imagesTrainDir"] + \
                             f" --labelsTrainDir " + kwargs["labelsTrainDir"] + \
                             f" --imagesValidDir " + kwargs["imagesValidDir"] + \
@@ -101,11 +103,12 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
                     shutil.rmtree(checkpoint_dirpath)
 
         else:            
-            if os.path.exists(modelpth_path):
+            if os.path.exists(model_finalpth_path):
                 return 0
             checkpointpth_path = os.path.join(model_dirpath, "checkpoint.pth")
             if os.path.exists(checkpointpth_path):
                 python_command = python_command + f" --pretrainedModel {model_dirpath}"
+                logger.info(f"Incomplete training (restarting) : {python_command}")
                 logfile = open(logpath, 'w')
                 subprocess.call(python_command, shell=True, stdout=logfile, stderr=logfile, env=process_env)
             else:
@@ -142,7 +145,6 @@ def main():
 
     args = parser.parse_args()
     csv_path: str = args.csvFile
-    main_file_path = args.mainFile
     images_training_dirpath = args.imagesTrainDir
     labels_training_dirpath = args.labelsTrainDir
     images_validation_dirpath = args.imagesValidDir
@@ -189,9 +191,9 @@ def main():
             logger.info(f"\n{counter}. {model_dirname}")
             
             model_dirpath = os.path.join(input_kwargs["output_workdir"], model_dirname)
-            modelpth_path = os.path.join(model_dirpath, "model.pth")
-            if os.path.exists(modelpth_path):
-                logger.debug(f"Not Running ({counter}/{NUM_PROCESSES}) - output already exists at {modelpth_path}")
+            model_finalpth_path = os.path.join(model_dirpath, "model_final.pth")
+            if os.path.exists(model_finalpth_path):
+                logger.debug(f"Not Running ({counter}/{NUM_PROCESSES}) - output already exists at {model_finalpth_path}")
             
             sleeping_in = 0
             while QUEUE.empty():
