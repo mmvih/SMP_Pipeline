@@ -39,7 +39,7 @@ Can clone branch with all the plugins merged
 ```#!/bin/sh
 git clone --branch smp_Pipeline https://github.com/mmvih/polus-plugins.git
 ```
-
+Cloning the repository instead of using docker containers because of the issue with using sudo on Polus Instance
 
 ## Create CSV File for all the Models
 
