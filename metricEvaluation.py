@@ -74,11 +74,19 @@ def main():
     output_metrics_dirpath    = args.outputMetrics
     evaluation_metric      = args.evaluationMetric
     
+    if not os.path.exists(output_metrics_dirpath):
+        raise ValueError(f"Output Directory does not exist : {output_metrics_dirpath}")
+    
     logger.info(f"Input Predictions Directory : {input_predictions_dirpath}")
     logger.info(f"Input Groundtruth Directory : {input_groundtruth_dirpath}")
     logger.info(f"Output Metrics Path : {output_metrics_dirpath}")
     logger.info(f"Evaluation Metric : {evaluation_metric}")
     
+    if evaluation_metric == "PixelEvaluation":
+        eval_name = "pixeleval"
+    else:
+        eval_name = "celleval"
+        
     input_predictions_list = os.listdir(input_predictions_dirpath)
     num_models = len(input_predictions_list)
 
@@ -92,29 +100,31 @@ def main():
         for curr_smp_model in input_predictions_list:
             
             counter += 1
-            logger.info(f"\n{counter}. {curr_smp_model}")
+            logger.info(f"\n{counter}/{num_models}. {curr_smp_model}")
             
             input_prediction_dirpath = os.path.join(input_predictions_dirpath, curr_smp_model)
             output_metric_dirpath = os.path.join(output_metrics_dirpath, curr_smp_model)
             logger.debug(f"Input Prediction Path : {input_prediction_dirpath}")
-            logger.debug(f"Output Label Path : {output_metric_dirpath}") 
-        
-            output_evaluation_dirpath = os.path.join(output_metric_dirpath, evaluation_metric)
-            total_stats_result_path = os.path.join(output_evaluation_dirpath, "total_stats_result.csv")
-            if os.path.exists(total_stats_result_path):
-                logger.debug(f"Not Running {counter}/{num_models} - output already exists ({total_stats_result_path})")
-                continue
+            logger.debug(f"Output Label Path : {output_metric_dirpath}")
 
-            if not os.path.exists(output_evaluation_dirpath):
+            if not os.path.exists(output_metric_dirpath):
+                os.mkdir(output_metric_dirpath)
+
+            output_evaluation_dirpath = os.path.join(output_metric_dirpath, eval_name)
+            if os.path.exists(output_evaluation_dirpath):
+                total_stats_result_path = os.path.join(output_evaluation_dirpath, "total_stats_result.csv")
+                if os.path.exists(total_stats_result_path):
+                    logger.debug(f"Not Running {counter}/{num_models} - output already exists ({total_stats_result_path})")
+                    continue
+            else:
                 os.mkdir(output_evaluation_dirpath)
-
+                
             executor.submit(evaluation, 
                             input_prediction_dirpath,
                             input_groundtruth_dirpath,
                             output_evaluation_dirpath,
                             evaluation_metric)
 
-            logger.info(f"analyzed {counter}/{num_models} models\n")
     logger.info(f"DONE ANALYZING ALL MODELS!")
     
 main()
