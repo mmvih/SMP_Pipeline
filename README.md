@@ -155,6 +155,7 @@ python metricSummary.py \
 --outputCSVs ./ModelsCellOutput
 ```
 The outputs for this can be used to generate Graph Pyramids
+https://wipp-ui.ci.aws.labshare.org/wipp/pyramids/62acc2f62550ca495c29b182
 
 ## Create BoxPlots for Pixel & Cellular Evaluations
 ```#!/bin/sh
