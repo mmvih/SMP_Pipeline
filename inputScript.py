@@ -49,6 +49,7 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
         model_dirpath = os.path.join(kwargs["output_workdir"], model_dirname)
         modelpth_path = os.path.join(model_dirpath, "model.pth")
         model_finalpth_path = os.path.join(model_dirpath, "model_final.pth")
+        checkpoint_finalpth_path = os.path.join(model_dirpath, "checkpoint_final.pth")
         logpath = os.path.join(model_dirpath, "logs.log")
 
         num_arguments = len(headers)
@@ -101,10 +102,24 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
                 if (os.path.exists(os.path.join(model_dirpath,"checkpoint_final.pth")) and \
                     os.path.exists(os.path.join(model_dirpath,"model_final.pth"))):
                     shutil.rmtree(checkpoint_dirpath)
+                    return 0
 
         else:            
-            if os.path.exists(model_finalpth_path):
+            if os.path.exists(model_finalpth_path) and os.path.exists(checkpoint_finalpth_path):
                 return 0
+            
+            checkpoints_dirpath = os.path.join(model_dirpath, "checkpoints")
+            if os.path.exists(checkpoints_dirpath):
+                checkpoint_finalpth_indir_path = os.path.join(checkpoints_dirpath, "checkpoint_final.pth")
+                model_finalpth_indir_path      = os.path.join(checkpoints_dirpath, "model_final.pth")
+                if os.path.exists(checkpoint_finalpth_indir_path) and os.path.exists(model_finalpth_indir_path):
+                    shutil.move(checkpoint_finalpth_indir_path, model_dirpath)
+                    shutil.move(model_finalpth_indir_path, model_dirpath)
+                    if (os.path.exists(os.path.join(model_dirpath,"checkpoint_final.pth")) and \
+                        os.path.exists(os.path.join(model_dirpath,"model_final.pth"))):
+                        shutil.rmtree(checkpoints_dirpath)
+                        return 0
+
             checkpointpth_path = os.path.join(model_dirpath, "checkpoint.pth")
             if os.path.exists(checkpointpth_path):
                 python_command = python_command + f" --pretrainedModel {model_dirpath}"
@@ -115,13 +130,15 @@ def csv_rowprocess(model_parameters, headers, gpu_id, **kwargs):
                 logger.info(f"Trying again: {python_command}")
                 logfile = open(logpath, 'w')
                 subprocess.call(python_command, shell=True, stdout=logfile, stderr=logfile, env=process_env)
-                
-        logger.info(f"{ident}: ending process on GPU {gpu_id}")
+        
+        return 0
+        
         
     except Exception as e:
         logger.info(f"ERROR {e}")
     
     finally:
+        logger.info(f"{ident}: ending process on GPU {gpu_id}")
         QUEUE.put(gpu_id)
 
 def main():
@@ -188,7 +205,7 @@ def main():
             counter += 1
             
             model_dirname = "-".join(model_parameters)
-            logger.info(f"\n{counter}. {model_dirname}")
+            logger.info(f"\n{counter}/{NUM_PROCESSES}. {model_dirname}")
             
             model_dirpath = os.path.join(input_kwargs["output_workdir"], model_dirname)
             model_finalpth_path = os.path.join(model_dirpath, "model_final.pth")
@@ -204,7 +221,6 @@ def main():
             if not QUEUE.empty():
                 executor.submit(csv_rowprocess, model_parameters, headers, QUEUE.get(), **input_kwargs)
             
-            logger.info(f"analyzed {counter}/{NUM_PROCESSES} models")
         logger.info(f"DONE ANALYZING ALL MODELS!")
 
     
